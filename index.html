@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMEX GOLD — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#090910;--bg2:#0f0f1a;--sidebar:#0c0c17;
+  --card:#111120;--card2:#181828;
+  --gold:#d4af37;--gold2:#f0c040;--gold3:rgba(212,175,55,.12);
+  --gold-border:rgba(212,175,55,.2);
+  --text:#f0ead8;--text2:rgba(240,234,216,.65);--sub:rgba(240,234,216,.32);
+  --border:rgba(255,255,255,.06);
+  --up:#2ecc71;--dn:#ff4757;--blue:#4a9eff;--purple:#9b59b6;--orange:#f39c12;
+  --sidebar-w:230px;--radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);display:flex;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(212,175,55,.25);border-radius:10px;}
+
+/* ===== FIREBASE WARNING BANNER ===== */
+#fbWarning{
+  position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:linear-gradient(90deg,#2a1a00,#3a2600,#2a1a00);
+  border-bottom:1px solid rgba(243,156,18,.4);
+  padding:10px 20px;display:none;align-items:center;gap:12px;
+}
+#fbWarning p{font-size:12px;color:#f39c12;line-height:1.6;flex:1;}
+#fbWarning b{color:#f0c040;}
+.fw-close{background:none;border:1px solid rgba(243,156,18,.3);color:#f39c12;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap;}
+
+/* ===== LOGIN ===== */
+#loginScreen{
+  position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  background-image:
+    radial-gradient(ellipse 60% 50% at 50% 0%,rgba(212,175,55,.07) 0%,transparent 70%),
+    repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(212,175,55,.02) 60px,rgba(212,175,55,.02) 61px),
+    repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(212,175,55,.02) 60px,rgba(212,175,55,.02) 61px);
+}
+.login-box{
+  width:100%;max-width:380px;background:var(--card);
+  border:1px solid var(--gold-border);border-radius:24px;padding:36px 30px;
+  position:relative;overflow:hidden;
+}
+.login-box::before{
+  content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);
+  width:300px;height:200px;
+  background:radial-gradient(ellipse,rgba(212,175,55,.1) 0%,transparent 70%);pointer-events:none;
+}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .crown{font-size:36px;margin-bottom:10px;display:block;}
+.login-logo h1{font-family:'Cinzel',serif;font-size:20px;font-weight:900;color:var(--gold2);letter-spacing:.12em;}
+.login-logo p{font-size:10px;color:var(--sub);letter-spacing:.18em;text-transform:uppercase;margin-top:3px;}
+.admin-badge{display:inline-block;margin-top:10px;padding:3px 12px;background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.3);border-radius:20px;font-size:10px;color:#ff6b78;font-weight:700;letter-spacing:.1em;}
+.l-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:6px;display:block;}
+.l-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:11px;padding:12px 14px;font-size:14px;font-weight:500;color:var(--text);font-family:'Syne',sans-serif;transition:border-color .25s,background .25s;outline:none;}
+.l-input:focus{border-color:var(--gold);background:rgba(212,175,55,.04);}
+.l-input::placeholder{color:var(--sub);}
+.l-group{margin-bottom:14px;}
+.btn-login{width:100%;padding:13px;margin-top:4px;background:linear-gradient(135deg,#c9982e,var(--gold2));color:#000;font-weight:800;font-size:14px;font-family:'Syne',sans-serif;border:none;border-radius:12px;cursor:pointer;letter-spacing:.06em;transition:opacity .2s,transform .15s,box-shadow .25s;box-shadow:0 4px 20px rgba(212,175,55,.25);}
+.btn-login:hover{box-shadow:0 6px 28px rgba(212,175,55,.4);}
+.btn-login:active{opacity:.85;transform:scale(.98);}
+.l-err{font-size:12px;color:#ff4757;min-height:18px;margin-top:8px;text-align:center;}
+.l-hint{font-size:11px;color:var(--sub);text-align:center;margin-top:10px;line-height:1.6;}
+.l-hint b{color:var(--gold2);}
+
+/* ===== ADMIN APP ===== */
+#adminApp{display:flex;width:100%;height:100dvh;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:var(--sidebar);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;position:relative;
+}
+.sidebar::after{
+  content:'';position:absolute;top:0;right:0;width:1px;height:100%;
+  background:linear-gradient(to bottom,transparent,rgba(212,175,55,.3) 30%,rgba(212,175,55,.3) 70%,transparent);pointer-events:none;
+}
+.sb-logo{padding:22px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-logo .crown2{font-size:22px;}
+.sb-logo h2{font-family:'Cinzel',serif;font-size:13px;font-weight:900;color:var(--gold2);letter-spacing:.08em;}
+.sb-logo p{font-size:9px;color:var(--sub);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 10px;}
+.sb-section-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--sub);padding:10px 10px 5px;margin-top:4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;transition:all .2s;color:var(--text2);font-size:12.5px;font-weight:600;margin-bottom:2px;position:relative;}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.nav-item.active{background:rgba(212,175,55,.1);color:var(--gold2);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;border-radius:0 3px 3px 0;background:var(--gold2);}
+.nav-ico{font-size:15px;width:20px;text-align:center;}
+.nav-badge{margin-left:auto;background:#ff4757;color:#fff;font-size:9px;font-weight:700;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+.nav-badge.gold-b{background:var(--gold);color:#000;}
+.nav-badge.green-b{background:var(--up);color:#000;}
+.sb-bottom{border-top:1px solid var(--border);padding:12px 10px;}
+.admin-info{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);margin-bottom:8px;}
+.admin-av{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#000;flex-shrink:0;}
+.admin-info-name{font-size:12px;font-weight:700;color:var(--text);}
+.admin-info-email{font-size:10px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
+.logout-btn{width:100%;padding:8px;background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);border-radius:9px;color:#ff6b78;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;transition:all .2s;letter-spacing:.04em;}
+.logout-btn:hover{background:rgba(255,71,87,.15);}
+
+/* MAIN */
+.main-content{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);}
+.top-bar{height:56px;flex-shrink:0;padding:0 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);}
+.page-title{font-size:16px;font-weight:800;color:var(--text);}
+.page-sub{font-size:10px;color:var(--sub);margin-top:1px;font-family:'JetBrains Mono';}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.tb-live{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;background:var(--gold3);border:1px solid var(--gold-border);font-size:11px;font-weight:700;color:var(--gold2);font-family:'JetBrains Mono';}
+.tb-dot{width:6px;height:6px;border-radius:50%;background:var(--up);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.content-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 24px;}
+
+/* PAGES */
+.pg{display:none;animation:pgIn .3s ease;}
+.pg.active{display:block;}
+@keyframes pgIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s;}
+.stat-card:hover{border-color:rgba(212,175,55,.2);}
+.stat-card::before{content:'';position:absolute;top:-30px;right:-20px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,var(--glow,rgba(212,175,55,.08)) 0%,transparent 70%);}
+.stat-ico{font-size:20px;margin-bottom:8px;display:block;}
+.stat-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:4px;}
+.stat-val{font-size:26px;font-weight:800;letter-spacing:-.5px;font-family:'JetBrains Mono';color:var(--text);}
+.stat-val.gold{color:var(--gold2);}
+.stat-val.green{color:var(--up);}
+.stat-val.red{color:var(--dn);}
+.stat-val.orange{color:var(--orange);}
+.stat-sub{font-size:10px;color:var(--sub);margin-top:4px;}
+
+/* TABLE */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.table-toolbar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tb-title{font-size:13px;font-weight:700;color:var(--text);}
+.search-box{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:7px 11px;min-width:160px;max-width:240px;}
+.search-box input{flex:1;background:none;border:none;outline:none;font-size:13px;color:var(--text);font-family:'Syne',sans-serif;}
+.search-box input::placeholder{color:var(--sub);}
+.filter-btn{padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--card2);color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Syne',sans-serif;white-space:nowrap;}
+.filter-btn:hover{border-color:var(--gold-border);color:var(--gold2);}
+.filter-btn.active{background:var(--gold3);border-color:var(--gold-border);color:var(--gold2);}
+.table-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:9px 16px;text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+tbody td{padding:12px 16px;font-size:12.5px;color:var(--text2);vertical-align:middle;}
+.td-name{font-weight:700;color:var(--text);font-size:13px;}
+.td-uid{font-family:'JetBrains Mono';font-size:10px;color:var(--sub);}
+.td-mono{font-family:'JetBrains Mono';font-size:11.5px;}
+.td-gold{color:var(--gold2);font-weight:700;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.04em;white-space:nowrap;}
+.badge-pending{background:rgba(243,156,18,.12);color:#f39c12;border:1px solid rgba(243,156,18,.25);}
+.badge-active{background:rgba(46,204,113,.12);color:var(--up);border:1px solid rgba(46,204,113,.25);}
+.badge-rejected{background:rgba(255,71,87,.1);color:#ff4757;border:1px solid rgba(255,71,87,.2);}
+.badge-suspended{background:rgba(155,89,182,.1);color:var(--purple);border:1px solid rgba(155,89,182,.2);}
+.badge-confirmed{background:rgba(46,204,113,.12);color:var(--up);border:1px solid rgba(46,204,113,.25);}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.lv-standard{background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--border);}
+.lv-vip{background:rgba(212,175,55,.12);color:var(--gold2);border:1px solid var(--gold-border);}
+.lv-premium{background:rgba(155,89,182,.1);color:#c39bd3;border:1px solid rgba(155,89,182,.25);}
+
+/* ACTION BTNS */
+.action-row{display:flex;gap:5px;flex-wrap:wrap;}
+.act-btn{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Syne',sans-serif;transition:all .18s;white-space:nowrap;}
+.act-approve{background:rgba(46,204,113,.15);color:var(--up);border:1px solid rgba(46,204,113,.3);}
+.act-approve:hover{background:rgba(46,204,113,.25);}
+.act-reject{background:rgba(255,71,87,.1);color:#ff4757;border:1px solid rgba(255,71,87,.25);}
+.act-reject:hover{background:rgba(255,71,87,.2);}
+.act-edit{background:rgba(74,158,255,.1);color:var(--blue);border:1px solid rgba(74,158,255,.25);}
+.act-edit:hover{background:rgba(74,158,255,.2);}
+.act-view{background:rgba(155,89,182,.1);color:var(--purple);border:1px solid rgba(155,89,182,.25);}
+.act-view:hover{background:rgba(155,89,182,.2);}
+.act-del{background:rgba(255,71,87,.07);color:#ff4757;border:1px solid rgba(255,71,87,.15);}
+.act-del:hover{background:rgba(255,71,87,.15);}
+.act-add{background:rgba(212,175,55,.12);color:var(--gold2);border:1px solid var(--gold-border);}
+.act-add:hover{background:rgba(212,175,55,.22);}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.card-block{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--card);border:1px solid var(--gold-border);border-radius:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:26px;position:relative;}
+.modal-wide{max-width:640px;}
+.modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:3px;}
+.modal-sub{font-size:10.5px;color:var(--sub);margin-bottom:20px;font-family:'JetBrains Mono';}
+.modal-close{position:absolute;top:16px;right:16px;width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.06);border:none;color:var(--text2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+.modal-close:hover{background:rgba(255,71,87,.15);color:#ff4757;}
+.m-group{margin-bottom:13px;}
+.m-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:5px;display:block;}
+.m-input,.m-select,.m-textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:10px 13px;font-size:13px;font-weight:500;color:var(--text);font-family:'Syne',sans-serif;outline:none;transition:border-color .2s;}
+.m-input:focus,.m-select:focus,.m-textarea:focus{border-color:var(--gold);}
+.m-select{cursor:pointer;}
+.m-select option{background:#1a1a2e;}
+.m-textarea{resize:vertical;min-height:80px;line-height:1.6;}
+.bal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.modal-footer{display:flex;gap:10px;margin-top:20px;}
+.btn-cancel{flex:1;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text2);font-size:13px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;transition:background .2s;}
+.btn-cancel:hover{background:rgba(255,255,255,.09);}
+.btn-save{flex:1;padding:11px;border-radius:10px;background:linear-gradient(135deg,#c9982e,var(--gold2));border:none;color:#000;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;transition:opacity .2s;}
+.btn-save:hover{opacity:.88;}
+.btn-confirm-green{flex:1;padding:11px;border-radius:10px;background:linear-gradient(135deg,#1a6e3c,#2ecc71);border:none;color:#fff;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;}
+.btn-confirm-red{flex:1;padding:11px;border-radius:10px;background:linear-gradient(135deg,#8b1a28,#ff4757);border:none;color:#fff;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;}
+
+/* RECEIPT IMAGE */
+.receipt-img-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--card2);max-height:260px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
+.receipt-img-wrap img{max-width:100%;max-height:260px;object-fit:contain;}
+.no-receipt{padding:30px;text-align:center;color:var(--sub);font-size:12px;}
+
+/* SPARKLINES */
+.sp-row{display:flex;align-items:center;margin-bottom:8px;}
+.sp-label{font-size:12px;color:var(--text2);width:80px;flex-shrink:0;}
+.sp-bar-wrap{flex:1;margin:0 10px;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.sp-bar{height:100%;border-radius:3px;transition:width .8s ease;}
+.sp-bar.gold-bar{background:linear-gradient(90deg,#c9982e,var(--gold2));}
+.sp-bar.green-bar{background:var(--up);}
+.sp-bar.red-bar{background:var(--dn);}
+.sp-bar.blue-bar{background:var(--blue);}
+.sp-val{font-size:12px;font-weight:700;font-family:'JetBrains Mono';color:var(--text2);width:25px;text-align:right;}
+.sparkline-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:12px;}
+
+/* ACTIVITY */
+.activity-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.activity-item:last-child{border-bottom:none;}
+.act-ico-circle{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.act-ico-circle.gold{background:rgba(212,175,55,.12);}
+.act-ico-circle.green{background:rgba(46,204,113,.12);}
+.act-ico-circle.red{background:rgba(255,71,87,.1);}
+.act-ico-circle.blue{background:rgba(74,158,255,.1);}
+.act-text{flex:1;}
+.at-main{font-size:12.5px;font-weight:600;color:var(--text);}
+.at-sub{font-size:10.5px;color:var(--sub);margin-top:1px;font-family:'JetBrains Mono';}
+.act-time{font-size:10px;color:var(--sub);white-space:nowrap;font-family:'JetBrains Mono';}
+
+/* DEPOSIT DETAIL */
+.deposit-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.di-item{background:var(--card2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);}
+.di-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:3px;}
+.di-val{font-size:14px;font-weight:700;color:var(--text);}
+.di-val.gold{color:var(--gold2);}
+.di-val.green{color:var(--up);}
+
+/* TOAST */
+#toastContainer{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{padding:10px 16px;border-radius:10px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px;animation:toastIn .3s ease;min-width:200px;max-width:300px;}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
+.toast-ok{background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.3);color:var(--up);}
+.toast-err{background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.3);color:#ff4757;}
+.toast-info{background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.25);color:var(--blue);}
+
+/* EMPTY & LOADING */
+.empty-state{text-align:center;padding:40px 20px;color:var(--sub);}
+.empty-ico{font-size:32px;margin-bottom:10px;}
+.loading-row{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:var(--sub);font-size:12px;}
+.spin{width:18px;height:18px;border:2px solid rgba(212,175,55,.2);border-top-color:var(--gold2);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* CONFIRM MODAL */
+.confirm-modal{max-width:340px;text-align:center;padding:30px;}
+
+/* ANNOUNCE */
+.ann-textarea{width:100%;min-height:90px;resize:vertical;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:11px 13px;font-size:13px;color:var(--text);font-family:'Syne',sans-serif;outline:none;transition:border-color .2s;line-height:1.6;}
+.ann-textarea:focus{border-color:var(--gold);}
+.announce-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;}
+.ann-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ann-title2{font-size:13px;font-weight:700;color:var(--text);}
+.ann-meta{font-size:10px;color:var(--sub);font-family:'JetBrains Mono';}
+.ann-body{font-size:12.5px;color:var(--text2);line-height:1.6;}
+
+@media(max-width:900px){
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .two-col{grid-template-columns:1fr;}
+  :root{--sidebar-w:200px;}
+}
+</style>
+</head>
+<body>
+
+<!-- FIREBASE WARNING BANNER -->
+<div id="fbWarning">
+  <p>⚠️ <b>Firebase ချိတ်ဆက်မရပါ။</b> ဤ file ကို Claude.ai preview မှာ Firebase CDN scripts ကို block လုပ်ထားသောကြောင့် အလုပ်မဖြစ်ပါ။<br>
+  <b>ဖြေရှင်းနည်း:</b> File ကို Download ပြီး Browser မှ ဖွင့်ပါ သို့မဟုတ် GitHub Pages / Hosting တင်ပါ။</p>
+  <button class="fw-close" onclick="document.getElementById('fbWarning').style.display='none'">ပိတ်</button>
+</div>
+
+<!-- TOAST -->
+<div id="toastContainer"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="crown">👑</span>
+      <h1>COMEX GOLD</h1>
+      <p>Trade Platform</p>
+      <span class="admin-badge">🔐 ADMIN PANEL</span>
+    </div>
+    <div class="l-group">
+      <label class="l-label">Admin Email</label>
+      <input class="l-input" id="loginEmail" type="email" placeholder="Mail" autocomplete="email">
+    </div>
+    <div class="l-group">
+      <label class="l-label">Password</label>
+      <input class="l-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    </div>
+    <button class="btn-login" onclick="doAdminLogin()">🔑 &nbsp;Sign In to Admin</button>
+    <div class="l-err" id="loginErr"></div>
+    <p class="l-hint">Admin account ကို Firebase Console တွင် ဦးစွာ ဖန်တီးပါ<br><b>Email:</b> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="52206464676a626465616112353f333b3e7c313d3f">[email&#160;protected]</a></p>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp" style="display:none">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <span class="crown2">👑</span>
+      <div><h2>COMEX</h2><p>Admin Console</p></div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section-label">Overview</div>
+      <div class="nav-item active" data-pg="dashboard" onclick="switchPg(this)"><span class="nav-ico">📊</span> Dashboard</div>
+
+      <div class="sb-section-label">Users</div>
+      <div class="nav-item" data-pg="users" onclick="switchPg(this)"><span class="nav-ico">👥</span> User Management <span class="nav-badge" id="nbPending">0</span></div>
+      <div class="nav-item" data-pg="pending-users" onclick="switchPg(this)"><span class="nav-ico">⏳</span> Pending Approval <span class="nav-badge" id="nbPending2">0</span></div>
+
+      <div class="sb-section-label">Finance</div>
+      <div class="nav-item" data-pg="deposits" onclick="switchPg(this)"><span class="nav-ico">💰</span> Deposits <span class="nav-badge gold-b" id="nbDeposits">0</span></div>
+      <div class="nav-item" data-pg="withdrawals" onclick="switchPg(this)"><span class="nav-ico">🏧</span> Withdrawals <span class="nav-badge gold-b" id="nbWithdrawals">0</span></div>
+      <div class="nav-item" data-pg="wallets" onclick="switchPg(this)"><span class="nav-ico">💳</span> Wallets</div>
+
+      <div class="sb-section-label">Requests</div>
+      <div class="nav-item" data-pg="change-requests" onclick="switchPg(this)"><span class="nav-ico">🔄</span> Change Requests <span class="nav-badge" id="nbChangeReq" style="background:#f39c12">0</span></div>
+      <div class="nav-item" data-pg="kyc-review" onclick="switchPg(this)"><span class="nav-ico">🪪</span> KYC Review <span class="nav-badge" id="nbKyc" style="background:#4a9eff">0</span></div>
+      <div class="nav-item" data-pg="active-trades" onclick="switchPg(this)"><span class="nav-ico">⚡</span> Active Trades <span class="nav-badge" id="nbActiveTrades" style="background:#2ecc71">0</span></div>
+
+      <div class="sb-section-label">Support</div>
+      <div class="nav-item" data-pg="chat" onclick="switchPg(this)"><span class="nav-ico">💬</span> CS Chat <span class="nav-badge" id="nbChat" style="background:#ff4757"></span></div>
+
+      <div class="sb-section-label">System</div>
+      <div class="nav-item" data-pg="announcements" onclick="switchPg(this)"><span class="nav-ico">📢</span> Announcements</div>
+      <div class="nav-item" data-pg="settings" onclick="switchPg(this)"><span class="nav-ico">⚙️</span> Settings</div>
+    </div>
+    <div class="sb-bottom">
+      <div class="admin-info">
+        <div class="admin-av" id="adminAv">A</div>
+        <div>
+          <div class="admin-info-name" id="adminName">Admin</div>
+          <div class="admin-info-email" id="adminEmailDisp">—</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">⏻ &nbsp;Sign Out</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <div class="top-bar">
+      <div>
+        <div class="page-title" id="pgTitle">Dashboard</div>
+        <div class="page-sub" id="pgSub">Overview & Statistics</div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-live"><span class="tb-dot"></span><span id="liveTime">--:--:--</span></div>
+        <button class="filter-btn" onclick="refreshAll()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="content-area">
+
+      <!-- ===== DASHBOARD ===== -->
+      <div class="pg active" id="pg-dashboard">
+        <!-- PRE-SET WIN/LOSS CARD — prominent at top of dashboard -->
+        <div style="background:linear-gradient(135deg,#1a1a00,#2a2000);border:1.5px solid rgba(212,175,55,.4);border-radius:var(--radius);padding:18px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div style="font-size:14px;font-weight:800;color:var(--gold2)">⚡ Pre-set Trade Results</div>
+              <div style="font-size:11px;color:var(--sub);margin-top:2px">Set outcome BEFORE user trades — applies to ALL next trades</div>
+            </div>
+            <div style="font-size:11px;font-family:'JetBrains Mono';color:var(--sub)">
+              Status: <span id="presetStatusLabel" style="color:var(--orange);font-weight:700">Not Set</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <button onclick="setGlobalPreset('win')" id="presetWinBtn"
+              style="padding:14px 10px;border-radius:12px;border:2px solid rgba(46,204,113,.4);background:rgba(46,204,113,.15);color:var(--up);font-size:14px;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;">
+              🏆 WIN
+            </button>
+            <button onclick="setGlobalPreset('lose')" id="presetLoseBtn"
+              style="padding:14px 10px;border-radius:12px;border:2px solid rgba(255,71,87,.4);background:rgba(255,71,87,.12);color:var(--dn);font-size:14px;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;">
+              💔 LOSE
+            </button>
+            <button onclick="setGlobalPreset(null)" id="presetClearBtn"
+              style="padding:14px 10px;border-radius:12px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--sub);font-size:13px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;">
+              🔄 Clear
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--sub);margin-top:10px;padding:8px 12px;background:rgba(0,0,0,.2);border-radius:8px;line-height:1.6;">
+            💡 Setting WIN/LOSE here will auto-resolve ALL new incoming trades for every user.
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card" style="--glow:rgba(212,175,55,.1)"><span class="stat-ico">👥</span><div class="stat-label">Total Users</div><div class="stat-val gold" id="st-total">—</div><div class="stat-sub">Registered</div></div>
+          <div class="stat-card" style="--glow:rgba(243,156,18,.1)"><span class="stat-ico">⏳</span><div class="stat-label">Pending</div><div class="stat-val orange" id="st-pending">—</div><div class="stat-sub">Awaiting approval</div></div>
+          <div class="stat-card" style="--glow:rgba(46,204,113,.08)"><span class="stat-ico">✅</span><div class="stat-label">Active Users</div><div class="stat-val green" id="st-active">—</div><div class="stat-sub">Approved</div></div>
+          <div class="stat-card" style="--glow:rgba(74,158,255,.08)"><span class="stat-ico">💰</span><div class="stat-label">Pending Deposits</div><div class="stat-val" id="st-deps" style="color:var(--blue)">—</div><div class="stat-sub">Awaiting confirm</div></div>
+        </div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="card-block">
+            <div class="sparkline-title">User Status Distribution</div>
+            <div id="statusBars"><div class="loading-row"><div class="spin"></div>Loading...</div></div>
+          </div>
+          <div class="card-block">
+            <div class="sparkline-title">Account Levels</div>
+            <div id="levelBars"><div class="loading-row"><div class="spin"></div>Loading...</div></div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar"><span class="tb-title">🕐 &nbsp;Recent Registrations</span></div>
+          <div id="recentList" style="padding:0 16px"><div class="loading-row"><div class="spin"></div>Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- ===== USERS ALL ===== -->
+      <div class="pg" id="pg-users">
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div class="search-box"><span>🔍</span><input type="text" id="userSearch" placeholder="Search name, username..." oninput="renderUsers()"></div>
+            <button class="filter-btn active" id="fb-all"      onclick="setStatusFilter('all',this)">All</button>
+            <button class="filter-btn"         id="fb-pending"  onclick="setStatusFilter('pending',this)">⏳ Pending</button>
+            <button class="filter-btn"         id="fb-active"   onclick="setStatusFilter('active',this)">✅ Active</button>
+            <button class="filter-btn"         id="fb-suspended" onclick="setStatusFilter('suspended',this)">🚫 Suspended</button>
+            <button class="filter-btn"         id="fb-rejected" onclick="setStatusFilter('rejected',this)">❌ Rejected</button>
+            <button class="act-btn act-add" style="margin-left:auto" onclick="openAddUserModal()">+ Add User</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>User</th><th>Contact</th><th>Status</th><th>Level</th>
+                <th>USD</th><th>MMK</th><th>User OTP</th><th>Joined</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="userTableBody"><tr><td colspan="9"><div class="loading-row"><div class="spin"></div>Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PENDING USERS ===== -->
+      <div class="pg" id="pg-pending-users">
+        <div class="table-wrap">
+          <div class="table-toolbar"><span class="tb-title">⏳ &nbsp;Users Awaiting Approval</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>User</th><th>Contact / Email</th><th>Registered</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="pendingTableBody"><tr><td colspan="4"><div class="loading-row"><div class="spin"></div>Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DEPOSITS ===== -->
+      <div class="pg" id="pg-deposits">
+        <div class="stat-grid-3" style="margin-bottom:16px">
+          <div class="stat-card"><span class="stat-ico">⏳</span><div class="stat-label">Pending</div><div class="stat-val orange" id="dep-pending">—</div></div>
+          <div class="stat-card"><span class="stat-ico">✅</span><div class="stat-label">Confirmed</div><div class="stat-val green" id="dep-confirmed">—</div></div>
+          <div class="stat-card"><span class="stat-ico">❌</span><div class="stat-label">Rejected</div><div class="stat-val red" id="dep-rejected">—</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <span class="tb-title">💰 &nbsp;Deposit Requests</span>
+            <button class="filter-btn active" id="df-all"       onclick="setDepFilter('all',this)">All</button>
+            <button class="filter-btn"         id="df-pending"   onclick="setDepFilter('pending',this)">⏳ Pending</button>
+            <button class="filter-btn"         id="df-confirmed" onclick="setDepFilter('confirmed',this)">✅ Confirmed</button>
+            <button class="filter-btn"         id="df-rejected"  onclick="setDepFilter('rejected',this)">❌ Rejected</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>User</th><th>Amount</th><th>Currency</th><th>Status</th><th>Receipt</th><th>Date</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="depositTableBody"><tr><td colspan="7"><div class="loading-row"><div class="spin"></div>Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== WITHDRAWALS ===== -->
+      <div class="pg" id="pg-withdrawals">
+        <div class="stat-grid-3" style="margin-bottom:16px">
+          <div class="stat-card"><span class="stat-ico">⏳</span><div class="stat-label">Pending</div><div class="stat-val orange" id="wth-pending">—</div></div>
+          <div class="stat-card"><span class="stat-ico">✅</span><div class="stat-label">Confirmed</div><div class="stat-val green" id="wth-confirmed">—</div></div>
+          <div class="stat-card"><span class="stat-ico">❌</span><div class="stat-label">Rejected</div><div class="stat-val red" id="wth-rejected">—</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <span class="tb-title">🏧 &nbsp;Withdrawal Requests</span>
+            <button class="filter-btn active" id="wf-all"       onclick="setWthFilter('all',this)">All</button>
+            <button class="filter-btn"         id="wf-pending"   onclick="setWthFilter('pending',this)">⏳ Pending</button>
+            <button class="filter-btn"         id="wf-confirmed" onclick="setWthFilter('confirmed',this)">✅ Confirmed</button>
+            <button class="filter-btn"         id="wf-rejected"  onclick="setWthFilter('rejected',this)">❌ Rejected</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>User</th><th>Amount</th><th>Account Info</th><th>Status</th><th>Date</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="withdrawalTableBody"><tr><td colspan="6"><div class="loading-row"><div class="spin"></div>Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== WALLETS ===== -->
+      <div class="pg" id="pg-wallets">
+        <div class="stat-grid-3" style="margin-bottom:16px">
+          <div class="stat-card"><span class="stat-ico">💵</span><div class="stat-label">Total USD</div><div class="stat-val gold" id="wl-usd">—</div></div>
+          <div class="stat-card"><span class="stat-ico">🏅</span><div class="stat-label">Total WG</div><div class="stat-val gold" id="wl-wg">—</div></div>
+          <div class="stat-card"><span class="stat-ico">🪙</span><div class="stat-label">Total MMK</div><div class="stat-val gold" id="wl-mmk">—</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar"><span class="tb-title">💳 &nbsp;User Wallets</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>User</th><th>USD</th><th>WG</th><th>MMK</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="walletTableBody"><tr><td colspan="6"><div class="loading-row"><div class="spin"></div>Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ANNOUNCEMENTS ===== -->
+      <div class="pg" id="pg-announcements">
+        <div class="two-col">
+          <div>
+            <div class="card-block">
+              <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px">📤 Send Announcement</div>
+              <div class="m-group"><label class="m-label">Title</label><input class="m-input" id="annTitle" placeholder="Announcement title..."></div>
+              <div class="m-group"><label class="m-label">Type</label>
+                <select class="m-select" id="annType">
+                  <option value="info">📢 Info</option>
+                  <option value="alert">⚠️ Alert</option>
+                  <option value="profit">💰 Profit / Promo</option>
+                  <option value="maintenance">🔧 Maintenance</option>
+                </select>
+              </div>
+              <div class="m-group"><label class="m-label">Message</label><textarea class="ann-textarea" id="annBody" placeholder="Enter message..."></textarea></div>
+              <button class="btn-save" style="width:100%;padding:12px" onclick="postAnnouncement()">📤 &nbsp;Publish</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📋 Published</div>
+            <div id="annList"><div class="loading-row"><div class="spin"></div>Loading...</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SETTINGS ===== -->
+      <div class="pg" id="pg-settings">
+        <div style="max-width:480px">
+          <div class="card-block" style="margin-bottom:14px">
+            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px">🔐 Admin Account</div>
+            <div class="m-group"><label class="m-label">Display Name</label><input class="m-input" id="settName" placeholder="Admin name"></div>
+            <div class="m-group"><label class="m-label">Current Password</label><input class="m-input" id="settOldPass" type="password" placeholder="Current password"></div>
+            <div class="m-group"><label class="m-label">New Password</label><input class="m-input" id="settNewPass" type="password" placeholder="Leave blank to keep"></div>
+            <button class="btn-save" style="width:100%;padding:12px" onclick="saveSettings()">💾 &nbsp;Save</button>
+          </div>
+          <div class="card-block">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📊 Firebase Project</div>
+            <div style="font-family:'JetBrains Mono';font-size:11px;color:var(--sub);line-height:2.2">
+              <div>Project ID: <span style="color:var(--gold2)">comex-gold</span></div>
+              <div>Auth Domain: <span style="color:var(--text2)">comex-gold.firebaseapp.com</span></div>
+              <div>Database: <span style="color:var(--text2)">asia-southeast1</span></div>
+              <div>Admin Email: <span style="color:var(--gold2)">r665806733.com</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ===== CUSTOMER SERVICE CHAT ===== -->
+      <div class="pg" id="pg-chat">
+        <div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 100px);background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+          <div style="border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;">Conversations</div>
+            <div id="chatUserList" style="flex:1;overflow-y:auto;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;">
+            <div id="chatEmptyState" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--sub);">
+              <div style="font-size:40px;margin-bottom:12px">💬</div>
+              <p style="font-size:13px">Select a conversation</p>
+            </div>
+            <div id="chatThreadArea" style="display:none;flex-direction:column;height:100%;">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text)" id="chatThreadTitle">—</div>
+              <div id="chatMsgPane" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:4px;"></div>
+              <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+                <input id="adminChatInp" type="text" placeholder="Type a reply..." onkeydown="if(event.key==='Enter')sendAdminReply()"
+                  style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text);font-family:'Syne',sans-serif;outline:none;">
+                <button onclick="sendAdminReply()"
+                  style="padding:10px 18px;background:linear-gradient(135deg,#c9982e,var(--gold2));border:none;border-radius:10px;color:#000;font-size:13px;font-weight:700;cursor:pointer;">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ===== CHANGE REQUESTS ===== -->
+      <div class="pg" id="pg-change-requests">
+        <div class="stat-grid-3" style="margin-bottom:16px">
+          <div class="stat-card"><span class="stat-ico">🔄</span><div class="stat-label">Pending</div><div class="stat-val orange" id="cr-pending">—</div></div>
+          <div class="stat-card"><span class="stat-ico">✅</span><div class="stat-label">Accepted</div><div class="stat-val green" id="cr-accepted">—</div></div>
+          <div class="stat-card"><span class="stat-ico">❌</span><div class="stat-label">Rejected</div><div class="stat-val red" id="cr-rejected">—</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar"><span class="tb-title">🔄 &nbsp;Phone &amp; Password Change Requests</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>User</th><th>Type</th><th>Old Value</th><th>New Value</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody id="crTableBody"><tr><td colspan="7"><div class="loading-row"><div class="spin"></div>Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== KYC REVIEW ===== -->
+      <div class="pg" id="pg-kyc-review">
+        <div class="stat-grid-3" style="margin-bottom:16px">
+          <div class="stat-card"><span class="stat-ico">⏳</span><div class="stat-label">Pending KYC</div><div class="stat-val orange" id="kyc-pending">—</div></div>
+          <div class="stat-card"><span class="stat-ico">✅</span><div class="stat-label">Verified</div><div class="stat-val green" id="kyc-verified">—</div></div>
+          <div class="stat-card"><span class="stat-ico">❌</span><div class="stat-label">Rejected</div><div class="stat-val red" id="kyc-rejected-cnt">—</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar"><span class="tb-title">🪪 &nbsp;KYC Verification Requests</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>User</th><th>Real Name</th><th>DOB</th><th>Phone</th><th>ID Number</th><th>Doc Type</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="kycTableBody"><tr><td colspan="8"><div class="loading-row"><div class="spin"></div>Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ACTIVE TRADES (WIN/LOSS CONTROL) ===== -->
+      <div class="pg" id="pg-active-trades">
+        <div class="stat-grid-3" style="margin-bottom:16px">
+          <div class="stat-card"><span class="stat-ico">⚡</span><div class="stat-label">Pending</div><div class="stat-val orange" id="at-pending">—</div></div>
+          <div class="stat-card"><span class="stat-ico">🏆</span><div class="stat-label">Wins Set</div><div class="stat-val green" id="at-wins">—</div></div>
+          <div class="stat-card"><span class="stat-ico">💔</span><div class="stat-label">Losses Set</div><div class="stat-val red" id="at-losses">—</div></div>
+        </div>
+        <div id="atPane1">
+          <div class="table-wrap">
+            <div class="table-toolbar"><span class="tb-title">⚡ &nbsp;Active Trades — Global Preset Only</span><span style="font-size:11px;color:var(--sub);margin-left:auto">Real-time · Auto refreshes</span></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Trader</th><th>Direction</th><th>Symbol</th><th>Amount</th><th>Duration</th><th>Profit %</th><th>Status</th><th>Time</th><th>Mode</th></tr></thead>
+                <tbody id="atTableBody"><tr><td colspan="9"><div class="empty-state"><div class="empty-ico">⚡</div><p>No active trades.</p></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main-content -->
+</div><!-- /adminApp -->
+
+
+<!-- ===== KYC PHOTO VIEWER MODAL ===== -->
+<div class="modal-bg" id="kycPhotoModal" style="display:none" onclick="if(event.target===this)closeModal('kycPhotoModal')">
+  <div class="modal modal-wide">
+    <button class="modal-close" onclick="closeModal('kycPhotoModal')">✕</button>
+    <div class="modal-title">🪪 KYC Document Review</div>
+    <div class="modal-sub" id="kycPhotoModalSub">—</div>
+    <div class="deposit-info-grid">
+      <div class="di-item"><div class="di-label">Real Name</div><div class="di-val" id="kmpName">—</div></div>
+      <div class="di-item"><div class="di-label">Date of Birth</div><div class="di-val" id="kmpBOD">—</div></div>
+      <div class="di-item"><div class="di-label">Phone</div><div class="di-val" id="kmpPhone">—</div></div>
+      <div class="di-item"><div class="di-label">ID Number</div><div class="di-val" id="kmpIdNum">—</div></div>
+    </div>
+    <div class="m-label" style="margin-bottom:8px">Document Photos (<span id="kmpDocType">—</span>)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:10px;color:var(--sub);margin-bottom:4px">Front Side</div>
+        <div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--card2);min-height:160px;display:flex;align-items:center;justify-content:center">
+          <img id="kmpPhotoFront" src="" style="max-width:100%;max-height:200px;display:none" alt="Front">
+          <div id="kmpFrontEmpty" style="color:var(--sub);font-size:12px">No photo</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--sub);margin-bottom:4px">Back Side</div>
+        <div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--card2);min-height:160px;display:flex;align-items:center;justify-content:center">
+          <img id="kmpPhotoBack" src="" style="max-width:100%;max-height:200px;display:none" alt="Back">
+          <div id="kmpBackEmpty" style="color:var(--sub);font-size:12px">No photo</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" id="kycPhotoActions">
+      <button class="btn-cancel" onclick="closeModal('kycPhotoModal')">Close</button>
+      <button class="btn-confirm-red" onclick="processKyc('rejected')">❌ &nbsp;Reject KYC</button>
+      <button class="btn-confirm-green" onclick="processKyc('verified')">✅ &nbsp;Approve KYC</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT USER MODAL ===== -->
+<div class="modal-bg" id="editModal" style="display:none" onclick="if(event.target===this)closeModal('editModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+    <div class="modal-title">Edit User</div>
+    <div class="modal-sub" id="editModalSub">UID: —</div>
+    <div class="m-group"><label class="m-label">Real Name</label><input class="m-input" id="eRealName" placeholder="Full name"></div>
+    <div class="m-group"><label class="m-label">Username</label><input class="m-input" id="eUsername" placeholder="Username"></div>
+    <div class="m-group"><label class="m-label">Contact</label><input class="m-input" id="eContact" placeholder="+95 9..."></div>
+    <div class="m-group"><label class="m-label">Status</label>
+      <select class="m-select" id="eStatus">
+        <option value="pending">⏳ Pending</option>
+        <option value="active">✅ Active</option>
+        <option value="suspended">🚫 Suspended</option>
+        <option value="rejected">❌ Rejected</option>
+      </select>
+    </div>
+    <div class="m-group"><label class="m-label">Level</label>
+      <select class="m-select" id="eLevel">
+        <option value="standard">Standard</option>
+        <option value="vip">VIP ⭐</option>
+        <option value="premium">Premium 💎</option>
+      </select>
+    </div>
+    <div class="m-group">
+      <label class="m-label">Balance</label>
+      <div class="bal-grid">
+        <div><label class="m-label" style="margin-bottom:4px">USD ($)</label><input class="m-input" id="eBal_usd" type="number" placeholder="0" min="0"></div>
+        <div><label class="m-label" style="margin-bottom:4px">WG (g)</label><input class="m-input" id="eBal_wg" type="number" placeholder="0" min="0"></div>
+        <div><label class="m-label" style="margin-bottom:4px">MMK (K)</label><input class="m-input" id="eBal_mmk" type="number" placeholder="0" min="0"></div>
+      </div>
+    </div>
+    <div class="m-group"><label class="m-label">Admin Note</label><input class="m-input" id="eNote" placeholder="Optional note..."></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn-save" onclick="saveUser()">💾 &nbsp;Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD USER MODAL ===== -->
+<div class="modal-bg" id="addUserModal" style="display:none" onclick="if(event.target===this)closeModal('addUserModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addUserModal')">✕</button>
+    <div class="modal-title">Add New User</div>
+    <div class="modal-sub">Manually create account</div>
+    <div class="m-group"><label class="m-label">Real Name</label><input class="m-input" id="aRealName"></div>
+    <div class="m-group"><label class="m-label">Username</label><input class="m-input" id="aUsername"></div>
+    <div class="m-group"><label class="m-label">Email</label><input class="m-input" id="aEmail" type="email"></div>
+    <div class="m-group"><label class="m-label">Password (min 8)</label><input class="m-input" id="aPass" type="password"></div>
+    <div class="m-group"><label class="m-label">Contact</label><input class="m-input" id="aContact" placeholder="+95 9..."></div>
+    <div class="m-group"><label class="m-label">Level</label>
+      <select class="m-select" id="aLevel"><option value="standard">Standard</option><option value="vip">VIP ⭐</option><option value="premium">Premium 💎</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('addUserModal')">Cancel</button>
+      <button class="btn-save" onclick="addUser()">➕ &nbsp;Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DEPOSIT DETAIL MODAL ===== -->
+<div class="modal-bg" id="depositModal" style="display:none" onclick="if(event.target===this)closeModal('depositModal')">
+  <div class="modal modal-wide">
+    <button class="modal-close" onclick="closeModal('depositModal')">✕</button>
+    <div class="modal-title">💰 Deposit Request</div>
+    <div class="modal-sub" id="depModalSub">—</div>
+    <div class="deposit-info-grid">
+      <div class="di-item"><div class="di-label">User</div><div class="di-val" id="depUser">—</div></div>
+      <div class="di-item"><div class="di-label">User UID</div><div class="di-val" id="depUserUid">—</div></div>
+      <div class="di-item"><div class="di-label">Phone</div><div class="di-val" id="depPhone">—</div></div>
+      <div class="di-item"><div class="di-label">Deposit Method</div><div class="di-val" id="depMethod">—</div></div>
+      <div class="di-item"><div class="di-label">Amount</div><div class="di-val gold" id="depAmount">—</div></div>
+      <div class="di-item"><div class="di-label">Currency</div><div class="di-val" id="depCurrency">—</div></div>
+      <div class="di-item"><div class="di-label">Current Status</div><div class="di-val" id="depStatus">—</div></div>
+    </div>
+    <div class="m-label" style="margin-bottom:8px">Payment Receipt</div>
+    <div class="receipt-img-wrap" id="receiptWrap">
+      <div class="no-receipt">📄 No receipt uploaded</div>
+    </div>
+    <div class="m-group"><label class="m-label">Approved Amount (USD)</label><input class="m-input" id="depApprovedAmount" type="number" min="0" step="0.01" placeholder="Enter amount to credit..."></div>
+    <div class="m-group"><label class="m-label">Admin Note (optional)</label><input class="m-input" id="depNote" placeholder="Reason or note..."></div>
+    <div class="modal-footer" id="depActions">
+      <button class="btn-cancel" onclick="closeModal('depositModal')">Close</button>
+      <button class="btn-confirm-red" onclick="processDeposit('rejected')">❌ &nbsp;Reject</button>
+      <button class="btn-confirm-green" onclick="processDeposit('confirmed')">✅ &nbsp;Confirm & Credit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WITHDRAWAL DETAIL MODAL ===== -->
+<div class="modal-bg" id="wthModal" style="display:none" onclick="if(event.target===this)closeModal('wthModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('wthModal')">✕</button>
+    <div class="modal-title">🏧 Withdrawal Request</div>
+    <div class="modal-sub" id="wthModalSub">—</div>
+    <div class="deposit-info-grid">
+      <div class="di-item"><div class="di-label">User</div><div class="di-val" id="wthUser">—</div></div>
+      <div class="di-item"><div class="di-label">Amount</div><div class="di-val gold" id="wthAmount">—</div></div>
+      <div class="di-item"><div class="di-label">Current Status</div><div class="di-val" id="wthStatus">—</div></div>
+      <div class="di-item"><div class="di-label">Submitted</div><div class="di-val" id="wthDate">—</div></div>
+    </div>
+    <div class="m-group">
+      <label class="m-label">Account / Bank Info</label>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6;font-family:'JetBrains Mono'" id="wthAccInfo">—</div>
+    </div>
+    <div class="m-group"><label class="m-label">Admin Note</label><input class="m-input" id="wthNote" placeholder="Reason or note..."></div>
+    <div class="modal-footer" id="wthActions">
+      <button class="btn-cancel" onclick="closeModal('wthModal')">Close</button>
+      <button class="btn-confirm-red" onclick="processWithdrawal('rejected')">❌ &nbsp;Reject</button>
+      <button class="btn-confirm-green" onclick="processWithdrawal('confirmed')">✅ &nbsp;Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONFIRM MODAL ===== -->
+<div class="modal-bg" id="confirmModal" style="display:none">
+  <div class="modal confirm-modal">
+    <div style="font-size:36px;margin-bottom:12px" id="confirmIco">⚠️</div>
+    <div class="modal-title" id="confirmTitle" style="font-size:16px;margin-bottom:8px">Are you sure?</div>
+    <div style="font-size:12.5px;color:var(--text2);margin-bottom:22px" id="confirmBody">This cannot be undone.</div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn-confirm-red" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+<script>
+// ========================================================
+// FIREBASE CONFIG
+// ========================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyA8FRrFcrkkHGgPwPkiRCY90-SOueRLrDY",
+  authDomain: "comex-gold.firebaseapp.com",
+  databaseURL: "https://comex-gold-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "comex-gold",
+  storageBucket: "comex-gold.firebasestorage.app",
+  messagingSenderId: "698161924390",
+  appId: "1:698161924390:web:f959ce4c74c0a623fc99e7",
+  measurementId: "G-5ZERCCNH7E"
+};
+
+const ADMIN_EMAIL = 'r665806733@gmail.com';
+
+let app, auth, db, storage;
+let fbReady = false;
+let unsubUsers=null, unsubDeposits=null, unsubWithdrawals=null;
+let unsubChangeReqs=null, unsubActiveTrades=null, unsubKycReqs=null;
+
+function initFirebase() {
+  try {
+    if(typeof firebase==='undefined') throw new Error('Firebase not loaded');
+    app=firebase.initializeApp(firebaseConfig);
+    auth=firebase.auth(); db=firebase.firestore(); storage=firebase.storage();
+    fbReady=true; setupAuthListener();
+  } catch(e) {
+    console.warn('Firebase init:',e.message);
+    document.getElementById('fbWarning').style.display='flex';
+  }
+}
+window.addEventListener('load',initFirebase);
+
+// ========================================================
+// AUTH
+// ========================================================
+function setupAuthListener() {
+  auth.onAuthStateChanged(async user => {
+    if(user) {
+      if(user.email!==ADMIN_EMAIL){toast('Access denied.','err');await auth.signOut();return;}
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('adminApp').style.display='flex';
+      document.getElementById('adminAv').textContent=user.email.charAt(0).toUpperCase();
+      document.getElementById('adminName').textContent=user.displayName||'Admin';
+      document.getElementById('adminEmailDisp').textContent=user.email;
+      document.getElementById('settName').value=user.displayName||'';
+      startClock(); startLiveListeners(); startChatListenerAdmin(); loadGlobalPreset();
+    } else {
+      document.getElementById('loginScreen').style.display='flex';
+      document.getElementById('adminApp').style.display='none';
+      [unsubUsers,unsubDeposits,unsubWithdrawals,unsubChangeReqs,unsubActiveTrades,unsubKycReqs].forEach(u=>{if(u)u();});
+    }
+  });
+}
+
+async function doAdminLogin() {
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginErr');
+  errEl.textContent='';
+  if(!fbReady){errEl.textContent='⚠️ Firebase not connected';return;}
+  if(!email||!pass){errEl.textContent='⚠️ Fill all fields.';return;}
+  if(email!==ADMIN_EMAIL){errEl.textContent='❌ Not an admin account.';return;}
+  try { await auth.signInWithEmailAndPassword(email,pass); }
+  catch(e){const m={'auth/wrong-password':'❌ Wrong password.','auth/invalid-credential':'❌ Invalid credentials.','auth/user-not-found':'❌ Account not found.'};errEl.textContent=m[e.code]||'❌ '+e.message;}
+}
+async function doLogout(){if(auth)await auth.signOut();}
+
+// ========================================================
+// STATE
+// ========================================================
+let allUsers=[],allDeposits=[],allWths=[],allChangeReqs=[],allActiveTrades=[],allKycReqs=[];
+let userFilter='all',depFilter='all',wthFilter='all';
+let editingUID=null,activeDepId=null,activeWthId=null,activeKycUID=null,activeCRId=null;
+
+// ========================================================
+// PAGE META
+// ========================================================
+const pgMeta={
+  dashboard:{title:'Dashboard',sub:'Overview & Statistics'},
+  users:{title:'User Management',sub:'All Registered Accounts'},
+  'pending-users':{title:'Pending Approval',sub:'Users awaiting review'},
+  deposits:{title:'Deposit Requests',sub:'Manage incoming deposits'},
+  withdrawals:{title:'Withdrawal Requests',sub:'Manage withdrawals'},
+  wallets:{title:'Wallets',sub:'User Balance Overview'},
+  'change-requests':{title:'Change Requests',sub:'Phone & Password change approvals'},
+  'kyc-review':{title:'KYC Review',sub:'Verify user identity documents'},
+  'active-trades':{title:'Active Trades',sub:'Set Win or Lose for each trade'},
+  chat:{title:'Customer Service Chat',sub:'Real-time conversations'},
+  announcements:{title:'Announcements',sub:'Publish messages'},
+  settings:{title:'Settings',sub:'Admin configuration'},
+};
+
+function switchPg(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  const pg=el.dataset.pg;
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+pg).classList.add('active');
+  const m=pgMeta[pg]||{};
+  document.getElementById('pgTitle').textContent=m.title||pg;
+  document.getElementById('pgSub').textContent=m.sub||'';
+  if(pg==='wallets')        renderWallets();
+  if(pg==='deposits')       renderDeposits();
+  if(pg==='withdrawals')    renderWithdrawals();
+  if(pg==='announcements')  loadAnnouncements();
+  if(pg==='chat')           renderChatUserList();
+  if(pg==='change-requests')renderChangeRequests();
+  if(pg==='kyc-review')     renderKycReview();
+  if(pg==='active-trades')  renderActiveTrades();
+}
+
+// ========================================================
+// LIVE LISTENERS
+// ========================================================
+function loadGlobalPreset(){
+  db.collection('adminSettings').doc('tradePreset').onSnapshot(snap=>{
+    if(!snap.exists)return;
+    const d=snap.data();
+    globalPreset=d.outcome||null;
+    const wBtn=document.getElementById('presetWinBtn'),lBtn=document.getElementById('presetLoseBtn'),lbl=document.getElementById('presetStatusLabel');
+    if(wBtn)wBtn.style.boxShadow=globalPreset==='win'?'0 0 20px rgba(46,204,113,.5)':'';
+    if(lBtn)lBtn.style.boxShadow=globalPreset==='lose'?'0 0 20px rgba(255,71,87,.5)':'';
+    if(lbl){lbl.textContent=globalPreset?globalPreset.toUpperCase():'Not Set';lbl.style.color=globalPreset==='win'?'var(--up)':globalPreset==='lose'?'var(--dn)':'var(--orange)';}
+  });
+}
+
+function startLiveListeners(){
+  // Users
+  if(unsubUsers) unsubUsers();
+  unsubUsers=db.collection('users').orderBy('createdAt','desc').onSnapshot(snap=>{
+    allUsers=snap.docs.map(d=>({uid:d.id,...d.data()}));
+    renderDashboard();renderUsers();renderPendingUsers();renderWallets();updateBadges();
+  });
+  // Deposits
+  if(unsubDeposits) unsubDeposits();
+  unsubDeposits=db.collection('deposits').orderBy('createdAt','desc').onSnapshot(snap=>{
+    allDeposits=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderDeposits();updateDepBadge();
+  });
+  // Withdrawals
+  if(unsubWithdrawals) unsubWithdrawals();
+  unsubWithdrawals=db.collection('withdrawals').orderBy('createdAt','desc').onSnapshot(snap=>{
+    allWths=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderWithdrawals();updateWthBadge();
+  });
+  // Change Requests
+  if(unsubChangeReqs) unsubChangeReqs();
+  unsubChangeReqs=db.collection('changeRequests').orderBy('createdAt','desc').onSnapshot(snap=>{
+    allChangeReqs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderChangeRequests();
+    const p=allChangeReqs.filter(r=>r.status==='pending').length;
+    const b=document.getElementById('nbChangeReq');if(b)b.textContent=p;
+  });
+  // KYC Requests (users with kyc_submitted=true and kyc_verified=false)
+  if(unsubKycReqs) unsubKycReqs();
+  unsubKycReqs=db.collection('users').where('kycSubmitted','==',true).onSnapshot(snap=>{
+    allKycReqs=snap.docs.map(d=>({uid:d.id,...d.data()}));
+    renderKycReview();
+    const p=allKycReqs.filter(u=>!u.kyc_verified&&u.kycStatus!=='rejected').length;
+    const b=document.getElementById('nbKyc');if(b)b.textContent=p||'';
+  });
+  // Active Trades
+  if(unsubActiveTrades) unsubActiveTrades();
+  unsubActiveTrades=db.collection('activeTrades').where('status','==','pending').onSnapshot(snap=>{
+    allActiveTrades=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderActiveTrades();
+    const b=document.getElementById('nbActiveTrades');if(b)b.textContent=allActiveTrades.length||'';
+  });
+}
+
+function refreshAll(){toast('Live data — real-time sync active ✅','info');}
+
+// ========================================================
+// BADGES
+// ========================================================
+function updateBadges(){
+  const p=allUsers.filter(u=>u.status==='pending').length;
+  document.getElementById('nbPending').textContent=p;
+  document.getElementById('nbPending2').textContent=p;
+}
+function updateDepBadge(){const p=allDeposits.filter(d=>d.status==='pending').length;document.getElementById('nbDeposits').textContent=p;}
+function updateWthBadge(){const p=allWths.filter(w=>w.status==='pending').length;document.getElementById('nbWithdrawals').textContent=p;}
+
+// ========================================================
+// DASHBOARD
+// ========================================================
+function renderDashboard(){
+  const total=allUsers.length,pending=allUsers.filter(u=>u.status==='pending').length,active=allUsers.filter(u=>u.status==='active').length,depPend=allDeposits.filter(d=>d.status==='pending').length;
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  s('st-total',total);s('st-pending',pending);s('st-active',active);s('st-deps',depPend);
+  const statusHtml=['Active Users','Pending Approval','Other'].map(n=>{
+    const cnt=n==='Active Users'?active:n==='Pending Approval'?pending:total-active-pending;
+    const cls=n==='Active Users'?'green-bar':n==='Pending Approval'?'gold-bar':'red-bar';
+    return `<div class="sp-row"><span class="sp-label">${n}</span><div class="sp-bar-wrap"><div class="sp-bar ${cls}" style="width:${total>0?Math.round(cnt/total*100):0}%"></div></div><span class="sp-val">${cnt}</span></div>`;
+  }).join('');
+  document.getElementById('statusBars').innerHTML=statusHtml;
+  const lvS=allUsers.filter(u=>!u.level||u.level==='standard').length,lvV=allUsers.filter(u=>u.level==='vip').length,lvP=allUsers.filter(u=>u.level==='premium').length;
+  document.getElementById('levelBars').innerHTML=[['Standard',lvS,'blue-bar'],['VIP',lvV,'gold-bar'],['Premium',lvP,'green-bar']].map(([n,c,cls])=>`<div class="sp-row"><span class="sp-label">${n}</span><div class="sp-bar-wrap"><div class="sp-bar ${cls}" style="width:${total>0?Math.round(c/total*100):0}%"></div></div><span class="sp-val">${c}</span></div>`).join('');
+  const recent=allUsers.slice(0,8);
+  if(!recent.length){document.getElementById('recentList').innerHTML='<div class="empty-state"><div class="empty-ico">👥</div><p>No users yet.</p></div>';return;}
+  document.getElementById('recentList').innerHTML=recent.map(u=>`<div class="activity-item"><div class="act-ico-circle ${u.status==='active'?'green':u.status==='pending'?'gold':'red'}">${u.status==='active'?'✅':'⏳'}</div><div class="act-text"><div class="at-main">${esc(u.realName||'—')}</div><div class="at-sub">${esc(u.contact||u.email||'—')}</div></div><span class="act-time">${fmtDate(u.createdAt)}</span></div>`).join('');
+}
+
+// ========================================================
+// USERS
+// ========================================================
+function renderUsers(){
+  const q=(document.getElementById('userSearch').value||'').toLowerCase();
+  let list=allUsers;
+  if(userFilter!=='all')list=list.filter(u=>u.status===userFilter);
+  if(q)list=list.filter(u=>(u.realName||'').toLowerCase().includes(q)||(u.username||'').toLowerCase().includes(q)||(u.contact||'').toLowerCase().includes(q));
+  const tb=document.getElementById('userTableBody');
+  if(!list.length){tb.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="empty-ico">🔍</div><p>No users found.</p></div></td></tr>`;return;}
+  tb.innerHTML=list.map(u=>`<tr>
+    <td><div class="td-name">${esc(u.realName||'—')}</div><div class="td-uid">@${esc(u.username||'—')} &nbsp;<span style="color:var(--gold2);font-size:10px">#${u.seqLabel||'—'}</span></div></td>
+    <td><div style="font-size:12px">${esc(u.contact||u.phone||'—')}</div><div class="td-uid">${esc(u.email||'—')}</div></td>
+    <td>${statusBadge(u.status)}</td>
+    <td>${levelBadge(u.level)}</td>
+    <td class="td-mono td-gold">$${(u.balance?.usd??0).toLocaleString()}</td>
+    <td class="td-mono">${(u.balance?.mmk??0).toLocaleString()} K</td>
+    <td>${renderUserOtpCell(u)}</td>
+    <td class="td-uid">${fmtDate(u.createdAt)}</td>
+    <td><div class="action-row">
+      ${u.status==='pending'?`<button class="act-btn act-approve" onclick="quickApprove('${u.uid}')">✅ Accept</button><button class="act-btn act-reject" onclick="quickReject('${u.uid}')">❌ Reject</button>`:''}
+      <button class="act-btn act-edit" onclick="openEditModal('${u.uid}')">✏️ Edit</button>
+      <button class="act-btn act-del" onclick="confirmDelete('${u.uid}','${esc(u.realName||u.uid)}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+function otpInputId(uid){
+  return `otpSend_${String(uid).replace(/[^a-zA-Z0-9_-]/g,'_')}`;
+}
+function renderUserOtpCell(u){
+  if(u.otpVerified){
+    return `<div style="font-size:11px;color:var(--up);font-weight:700">✅ Verified</div>`;
+  }
+  if(u.status!=='active'){
+    return `<div style="font-size:11px;color:var(--sub);line-height:1.5">Accept the user first.<br><span style="color:var(--gold2)">OTP send unlocks after approval.</span></div>`;
+  }
+  const inputId=otpInputId(u.uid);
+  const seeded=/^\d{6}$/.test(String(u.otpCode||'')) ? String(u.otpCode) : '';
+  return `<div style="display:flex;flex-direction:column;gap:8px;min-width:150px">
+    <input id="${inputId}" type="text" inputmode="numeric" maxlength="6" value="${seeded}" placeholder="Enter 6 digits" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(212,175,55,.25);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--text);font-family:'JetBrains Mono',monospace;outline:none;">
+    <button class="act-btn act-approve" style="width:100%" onclick="sendUserOtp('${u.uid}')">📨 Send OTP</button>
+  </div>`;
+}
+function setStatusFilter(s,el){userFilter=s;document.querySelectorAll('[id^="fb-"]').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderUsers();}
+function renderPendingUsers(){
+  const list=allUsers.filter(u=>u.status==='pending');
+  const tb=document.getElementById('pendingTableBody');
+  if(!list.length){tb.innerHTML=`<tr><td colspan="4"><div class="empty-state"><div class="empty-ico">🎉</div><p>No pending users!</p></div></td></tr>`;return;}
+  tb.innerHTML=list.map(u=>`<tr>
+    <td><div class="td-name">${esc(u.realName||'—')}</div><div class="td-uid">@${esc(u.username||'—')} &nbsp;<span style="color:var(--gold2);font-size:10px">#${u.seqLabel||'—'}</span></div></td>
+    <td><div style="font-size:12px">${esc(u.contact||u.phone||'—')}</div><div class="td-uid">${esc(u.email||'—')}</div></td>
+    <td class="td-uid">${fmtDate(u.createdAt)}</td>
+    <td><div class="action-row">
+      <button class="act-btn act-approve" onclick="quickApprove('${u.uid}')">✅ Accept</button>
+      <button class="act-btn act-reject" onclick="quickReject('${u.uid}')">❌ Reject</button>
+      <button class="act-btn act-edit" onclick="openEditModal('${u.uid}')">✏️ Edit</button>
+    </div></td>
+  </tr>`).join('');
+}
+async function quickApprove(uid){
+  try{
+    await db.collection('users').doc(uid).update({
+      status:'active',
+      otpVerified:false,
+      otpCode:firebase.firestore.FieldValue.delete(),
+      otpSentAt:firebase.firestore.FieldValue.delete(),
+      otpSentBy:firebase.firestore.FieldValue.delete(),
+      approvedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      approvedBy:auth.currentUser?.email||'admin',
+    });
+    toast('User approved ✅  Send OTP from the User OTP box.','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function showOTPPopup(uid,otpCode){
+  const u=allUsers.find(x=>x.uid===uid);const name=u?.realName||uid.slice(0,8);
+  const old=document.getElementById('otpPopup');if(old)old.remove();
+  const el=document.createElement('div');el.id='otpPopup';
+  el.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px';
+  el.innerHTML=`<div style="background:var(--card);border:2px solid var(--gold-border);border-radius:20px;padding:30px 26px;max-width:380px;width:100%;text-align:center"><div style="font-size:32px;margin-bottom:12px">✅</div><div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">User Approved!</div><div style="font-size:12px;color:var(--sub);margin-bottom:22px">${esc(name)}</div><div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">OTP Code — Share via WhatsApp</div><div style="font-size:44px;font-weight:900;color:var(--gold2);letter-spacing:12px;background:var(--gold3);border:2px solid var(--gold-border);border-radius:14px;padding:16px;margin-bottom:16px;font-family:'JetBrains Mono'">${otpCode}</div><button onclick="document.getElementById('otpPopup').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#c9982e,var(--gold2));border:none;border-radius:12px;color:#000;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;font-size:14px">Got it — Code Shared</button></div>`;
+  document.body.appendChild(el);
+}
+function getChatMetaForUser(user){
+  const contact=user?.contact||user?.phone||'';
+  return {
+    userId:user?.uid||'',
+    uid:user?.uid||'',
+    userName:user?.realName||user?.username||'User',
+    username:user?.username||'',
+    realName:user?.realName||'',
+    contact,
+    phone:contact,
+    email:user?.email||'',
+    seqLabel:user?.seqLabel||'',
+    unreadUser:0,
+  };
+}
+async function sendUserOtp(uid){
+  const user=allUsers.find(x=>x.uid===uid);
+  if(!user){toast('User not found.','err');return;}
+  if(user.status!=='active'){toast('Approve the user first.','info');return;}
+  const input=document.getElementById(otpInputId(uid));
+  let otp=String(input?.value||'').replace(/\D/g,'').slice(0,6);
+  if(!otp) otp=String(Math.floor(100000+Math.random()*900000));
+  if(!/^\d{6}$/.test(otp)){toast('OTP must be 6 digits.','err');return;}
+  const message=`Your COMEX OTP code: ${otp}`;
+  try{
+    await db.collection('users').doc(uid).set({
+      otpCode:otp,
+      otpVerified:false,
+      otpSentAt:firebase.firestore.FieldValue.serverTimestamp(),
+      otpSentBy:auth.currentUser?.email||ADMIN_EMAIL
+    },{merge:true});
+    await db.collection('chats').doc(uid).set({
+      ...getChatMetaForUser(user),
+      lastMsg:message,
+      lastMsgAt:firebase.firestore.FieldValue.serverTimestamp(),
+      unreadUser:firebase.firestore.FieldValue.increment(1)
+    },{merge:true});
+    await db.collection('chats').doc(uid).collection('messages').add({
+      text:message,
+      sender:'admin',
+      kind:'otp',
+      timestamp:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if(input) input.value=otp;
+    toast('OTP sent to user support chat ✅','ok');
+  }catch(e){
+    toast('Error: '+e.message,'err');
+  }
+}
+async function quickReject(uid){try{await db.collection('users').doc(uid).update({status:'rejected',rejectedAt:firebase.firestore.FieldValue.serverTimestamp()});toast('User Rejected','info');}catch(e){toast('Error: '+e.message,'err');}}
+
+// ========================================================
+// EDIT USER
+// ========================================================
+function openEditModal(uid){
+  const u=allUsers.find(x=>x.uid===uid);if(!u)return;
+  editingUID=uid;
+  document.getElementById('editModalSub').textContent='UID: '+uid;
+  document.getElementById('eRealName').value=u.realName||'';
+  document.getElementById('eUsername').value=u.username||'';
+  document.getElementById('eContact').value=u.contact||'';
+  document.getElementById('eStatus').value=u.status||'pending';
+  document.getElementById('eLevel').value=u.level||'standard';
+  document.getElementById('eBal_usd').value=u.balance?.usd??0;
+  document.getElementById('eBal_wg').value=u.balance?.wg??0;
+  document.getElementById('eBal_mmk').value=u.balance?.mmk??0;
+  document.getElementById('eNote').value=u.adminNote||'';
+  document.getElementById('editModal').style.display='flex';
+}
+async function saveUser(){
+  if(!editingUID)return;
+  try{
+    const data={realName:document.getElementById('eRealName').value.trim(),username:document.getElementById('eUsername').value.trim(),contact:document.getElementById('eContact').value.trim(),status:document.getElementById('eStatus').value,level:document.getElementById('eLevel').value,adminNote:document.getElementById('eNote').value.trim(),balance:{usd:Number(document.getElementById('eBal_usd').value)||0,wg:Number(document.getElementById('eBal_wg').value)||0,mmk:Number(document.getElementById('eBal_mmk').value)||0},updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser?.email};
+    await db.collection('users').doc(editingUID).update(data);
+    closeModal('editModal');toast('User updated ✅','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ========================================================
+// ADD USER
+// ========================================================
+function openAddUserModal(){['aRealName','aUsername','aEmail','aPass','aContact'].forEach(id=>document.getElementById(id).value='');document.getElementById('aLevel').value='standard';document.getElementById('addUserModal').style.display='flex';}
+async function addUser(){
+  const name=document.getElementById('aRealName').value.trim(),uname=document.getElementById('aUsername').value.trim(),email=document.getElementById('aEmail').value.trim(),pass=document.getElementById('aPass').value,contact=document.getElementById('aContact').value.trim(),level=document.getElementById('aLevel').value;
+  if(!name||!uname||!email||!pass){toast('Fill required fields.','err');return;}
+  if(pass.length<8){toast('Password 8+ chars.','err');return;}
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(email,pass);
+    await db.collection('users').doc(cred.user.uid).set({realName:name,username:uname,contact,email,status:'active',level,createdAt:firebase.firestore.FieldValue.serverTimestamp(),balance:{usd:0,wg:0,mmk:0},trade_history:[],kyc_verified:false});
+    closeModal('addUserModal');toast('User created ✅','ok');
+  }catch(e){const m={'auth/email-already-in-use':'❌ Email already used.','auth/weak-password':'⚠️ Weak password.'};toast(m[e.code]||'❌ '+e.message,'err');}
+}
+
+// ========================================================
+// DELETE USER
+// ========================================================
+function confirmDelete(uid,name){
+  document.getElementById('confirmIco').textContent='🗑️';
+  document.getElementById('confirmTitle').textContent='Delete User?';
+  document.getElementById('confirmBody').textContent=`"${name}" will be removed from Firestore.`;
+  document.getElementById('confirmOk').onclick=()=>deleteUser(uid);
+  document.getElementById('confirmModal').style.display='flex';
+}
+async function deleteUser(uid){try{await db.collection('users').doc(uid).delete();closeModal('confirmModal');toast('User deleted','info');}catch(e){toast('Error: '+e.message,'err');}}
+
+// ========================================================
+// WALLETS
+// ========================================================
+function renderWallets(){
+  let tu=0,tw=0,tm=0;allUsers.forEach(u=>{tu+=Number(u.balance?.usd||0);tw+=Number(u.balance?.wg||0);tm+=Number(u.balance?.mmk||0);});
+  document.getElementById('wl-usd').textContent='$'+tu.toLocaleString();
+  document.getElementById('wl-wg').textContent=tw.toFixed(4)+' g';
+  document.getElementById('wl-mmk').textContent=tm.toLocaleString()+' K';
+  const tb=document.getElementById('walletTableBody');
+  if(!allUsers.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><p>No data.</p></div></td></tr>';return;}
+  tb.innerHTML=allUsers.map(u=>`<tr><td><div class="td-name">${esc(u.realName||'—')}</div><div class="td-uid">@${esc(u.username||'—')} &nbsp;<span style="color:var(--gold2);font-size:10px">#${u.seqLabel||'—'}</span></div></td><td class="td-mono td-gold">$${(u.balance?.usd??0).toLocaleString()}</td><td class="td-mono td-gold">${(u.balance?.wg??0)} g</td><td class="td-mono">${(u.balance?.mmk??0).toLocaleString()} K</td><td>${statusBadge(u.status)}</td><td><button class="act-btn act-edit" onclick="openEditModal('${u.uid}')">✏️ Edit</button></td></tr>`).join('');
+}
+
+// ========================================================
+// DEPOSITS
+// ========================================================
+function renderDeposits(){
+  const p=allDeposits.filter(d=>d.status==='pending').length,c=allDeposits.filter(d=>d.status==='confirmed').length,r=allDeposits.filter(d=>d.status==='rejected').length;
+  document.getElementById('dep-pending').textContent=p;document.getElementById('dep-confirmed').textContent=c;document.getElementById('dep-rejected').textContent=r;
+  let list=depFilter==='all'?allDeposits:allDeposits.filter(d=>d.status===depFilter);
+  const tb=document.getElementById('depositTableBody');
+  if(!list.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><p>No deposits.</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(d=>{
+    const seq=d.seqLabel||d.displayUid||'—';
+    const phone=d.contact||d.phone||'—';
+    const method=d.depositMethod||d.paymentChannelLabel||d.method||d.bankName||'—';
+    return `<tr><td><div class="td-name">${esc(d.realName||d.userName||d.userId||'—')}</div><div class="td-uid">@${esc(d.username||'—')} &nbsp;<span style="color:var(--gold2);font-size:10px">#${esc(seq)}</span></div><div class="td-uid">${esc(phone)} · ${esc(method)}</div></td><td class="td-mono td-gold">$${Number(d.amount||0).toLocaleString()}</td><td class="td-mono">${esc(d.currency||'USD')}</td><td>${depBadge(d.status)}</td><td>${d.receiptUrl?`<span style="color:var(--blue);cursor:pointer;font-size:11px" onclick="openDepModal('${d.id}')">📎 View</span>`:'<span style="color:var(--sub);font-size:11px">No file</span>'}</td><td class="td-uid">${fmtDate(d.createdAt)}</td><td><div class="action-row"><button class="act-btn act-view" onclick="openDepModal('${d.id}')">🔍 Detail</button>${d.status==='pending'?`<button class="act-btn act-approve" onclick="openDepModal('${d.id}')">✅ Confirm</button><button class="act-btn act-reject" onclick="quickDepReject('${d.id}')">❌</button>`:''}</div></td></tr>`;
+  }).join('');
+}
+function setDepFilter(f,el){depFilter=f;document.querySelectorAll('[id^="df-"]').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderDeposits();}
+function openDepModal(id){
+  const d=allDeposits.find(x=>x.id===id);if(!d)return;
+  activeDepId=id;
+  document.getElementById('depModalSub').textContent='ID: '+id;
+  document.getElementById('depUser').textContent=(d.realName||d.userName||d.userId||'—')+' @'+(d.username||'—');
+  document.getElementById('depUserUid').textContent=(d.seqLabel?`#${d.seqLabel} · `:'')+(d.userId||d.uid||'—');
+  document.getElementById('depPhone').textContent=d.contact||d.phone||'—';
+  document.getElementById('depMethod').textContent=d.depositMethod||d.paymentChannelLabel||d.method||d.bankName||'—';
+  document.getElementById('depAmount').textContent='$'+Number(d.amount||0).toLocaleString();
+  document.getElementById('depCurrency').textContent=d.currency||'USD';
+  document.getElementById('depStatus').innerHTML=depBadge(d.status);
+  document.getElementById('depNote').value='';
+  const appAmtEl=document.getElementById('depApprovedAmount');if(appAmtEl)appAmtEl.value=d.amount||'';
+  const rw=document.getElementById('receiptWrap');
+  rw.innerHTML=d.receiptUrl?`<img src="${esc(d.receiptUrl)}" alt="Receipt" style="max-width:100%;max-height:260px" onerror="this.parentElement.innerHTML='<div class=no-receipt>⚠️ Failed</div>'">`:'<div class="no-receipt">📄 No receipt</div>';
+  const actions=document.getElementById('depActions');
+  actions.innerHTML=d.status!=='pending'?`<button class="btn-cancel" onclick="closeModal('depositModal')" style="flex:none;padding:11px 24px">Close</button>`:`<button class="btn-cancel" onclick="closeModal('depositModal')">Close</button><button class="btn-confirm-red" onclick="processDeposit('rejected')">❌ Reject</button><button class="btn-confirm-green" onclick="processDeposit('confirmed')">✅ Confirm & Credit</button>`;
+  document.getElementById('depositModal').style.display='flex';
+}
+async function processDeposit(action){
+  if(!activeDepId)return;
+  const d=allDeposits.find(x=>x.id===activeDepId);if(!d)return;
+  const note=document.getElementById('depNote').value.trim();
+  const appAmtEl=document.getElementById('depApprovedAmount');
+  const approvedAmount=appAmtEl&&appAmtEl.value?Number(appAmtEl.value):Number(d.amount||0);
+  if(action==='confirmed'&&(!approvedAmount||approvedAmount<=0)){toast('⚠️ Enter approved amount.','err');return;}
+  try{
+    const batch=db.batch();
+    batch.update(db.collection('deposits').doc(activeDepId),{status:action,adminNote:note,approvedAmount,processedAt:firebase.firestore.FieldValue.serverTimestamp(),processedBy:auth.currentUser?.email});
+    if(action==='confirmed'&&d.userId)batch.update(db.collection('users').doc(d.userId),{'balance.usd':firebase.firestore.FieldValue.increment(approvedAmount),lastDepositAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await batch.commit();
+    closeModal('depositModal');
+    toast(action==='confirmed'?`Deposit confirmed! $${approvedAmount.toLocaleString()} credited ✅`:'Deposit rejected','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+async function quickDepReject(id){activeDepId=id;await processDeposit('rejected');}
+
+// ========================================================
+// WITHDRAWALS
+// ========================================================
+function renderWithdrawals(){
+  const p=allWths.filter(w=>w.status==='pending').length,c=allWths.filter(w=>w.status==='confirmed').length,r=allWths.filter(w=>w.status==='rejected').length;
+  document.getElementById('wth-pending').textContent=p;document.getElementById('wth-confirmed').textContent=c;document.getElementById('wth-rejected').textContent=r;
+  let list=wthFilter==='all'?allWths:allWths.filter(w=>w.status===wthFilter);
+  const tb=document.getElementById('withdrawalTableBody');
+  if(!list.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><p>No withdrawals.</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(w=>`<tr><td><div class="td-name">${esc(w.realName||w.userId||'—')}</div><div class="td-uid">@${esc(w.username||'—')}</div></td><td class="td-mono td-gold">$${Number(w.amount||0).toLocaleString()}</td><td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w.accountInfo||'—')}</td><td>${depBadge(w.status)}</td><td class="td-uid">${fmtDate(w.createdAt)}</td><td><div class="action-row"><button class="act-btn act-view" onclick="openWthModal('${w.id}')">🔍</button>${w.status==='pending'?`<button class="act-btn act-approve" onclick="openWthModal('${w.id}')">✅</button><button class="act-btn act-reject" onclick="quickWthReject('${w.id}')">❌</button>`:''}</div></td></tr>`).join('');
+}
+function setWthFilter(f,el){wthFilter=f;document.querySelectorAll('[id^="wf-"]').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderWithdrawals();}
+function openWthModal(id){
+  const w=allWths.find(x=>x.id===id);if(!w)return;
+  activeWthId=id;
+  document.getElementById('wthModalSub').textContent='ID: '+id;
+  document.getElementById('wthUser').textContent=(w.realName||w.userId||'—')+' @'+(w.username||'—');
+  document.getElementById('wthAmount').textContent='$'+Number(w.amount||0).toLocaleString();
+  document.getElementById('wthStatus').innerHTML=depBadge(w.status);
+  document.getElementById('wthDate').textContent=fmtDate(w.createdAt);
+  document.getElementById('wthAccInfo').textContent=w.accountInfo||'—';
+  document.getElementById('wthNote').value='';
+  const actions=document.getElementById('wthActions');
+  actions.innerHTML=w.status!=='pending'?`<button class="btn-cancel" onclick="closeModal('wthModal')" style="flex:none;padding:11px 24px">Close</button>`:`<button class="btn-cancel" onclick="closeModal('wthModal')">Close</button><button class="btn-confirm-red" onclick="processWithdrawal('rejected')">❌ Reject</button><button class="btn-confirm-green" onclick="processWithdrawal('confirmed')">✅ Confirm</button>`;
+  document.getElementById('wthModal').style.display='flex';
+}
+async function processWithdrawal(action){
+  if(!activeWthId)return;
+  const w=allWths.find(x=>x.id===activeWthId);if(!w)return;
+  try{
+    const batch=db.batch();
+    batch.update(db.collection('withdrawals').doc(activeWthId),{status:action,adminNote:document.getElementById('wthNote').value.trim(),processedAt:firebase.firestore.FieldValue.serverTimestamp(),processedBy:auth.currentUser?.email});
+    if(action==='confirmed'&&w.userId)batch.update(db.collection('users').doc(w.userId),{'balance.usd':firebase.firestore.FieldValue.increment(-Number(w.amount||0))});
+    await batch.commit();closeModal('wthModal');
+    toast(action==='confirmed'?'Withdrawal confirmed ✅':'Withdrawal rejected','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+async function quickWthReject(id){activeWthId=id;await processWithdrawal('rejected');}
+
+// ========================================================
+// CHANGE REQUESTS — Phone / Password
+// ========================================================
+function renderChangeRequests(){
+  const p=allChangeReqs.filter(r=>r.status==='pending').length;
+  const a=allChangeReqs.filter(r=>r.status==='accepted').length;
+  const rj=allChangeReqs.filter(r=>r.status==='rejected').length;
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  s('cr-pending',p);s('cr-accepted',a);s('cr-rejected',rj);
+  const tb=document.getElementById('crTableBody');if(!tb)return;
+  if(!allChangeReqs.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">🔄</div><p>No change requests.</p></div></td></tr>';return;}
+  tb.innerHTML=allChangeReqs.map(r=>`<tr>
+    <td><div class="td-name">${esc(r.userName||r.userId||'—')}</div><div class="td-uid">${esc(r.userId||'').slice(0,10)}</div></td>
+    <td><span style="padding:3px 8px;border-radius:6px;font-size:11px;background:rgba(${r.type==='phone'?'74,163,224':'149,128,255'},.15);color:${r.type==='phone'?'var(--blue)':'#9b80ff'}">${r.type==='phone'?'📱 Phone':'🔒 Password'}</span></td>
+    <td class="td-uid">${esc(r.oldValue||'—')}</td>
+    <td style="font-weight:600;color:var(--text)">${esc(r.newValue||'—')}</td>
+    <td>${depBadge(r.status)}</td>
+    <td class="td-uid">${fmtDate(r.createdAt)}</td>
+    <td>
+      ${r.status==='pending'?`<div class="action-row">
+        <button class="act-btn act-approve" onclick="processChangeReq('${r.id}','accepted')">✅ Accept</button>
+        <button class="act-btn" style="background:rgba(255,213,96,.1);color:var(--gold2);border:1px solid rgba(255,213,96,.25)" onclick="processChangeReq('${r.id}','3days')">⏰ 3 Days</button>
+        <button class="act-btn act-reject" onclick="processChangeReq('${r.id}','rejected')">❌ Reject</button>
+      </div>`:`<span style="font-size:11px;color:var(--sub)">${r.status==='accepted'?'✅ Done':r.status==='3days'?'⏰ 3-Day Hold':'❌ Rejected'}</span>`}
+    </td>
+  </tr>`).join('');
+}
+
+async function processChangeReq(id,action){
+  const r=allChangeReqs.find(x=>x.id===id);if(!r)return;
+  try{
+    const update={status:action,processedAt:firebase.firestore.FieldValue.serverTimestamp(),processedBy:auth.currentUser?.email};
+    if(action==='3days') update.releaseDate=new Date(Date.now()+3*86400000).toISOString();
+    await db.collection('changeRequests').doc(id).update(update);
+    // If accepted and phone change, update user's contact
+    if(action==='accepted'&&r.type==='phone'&&r.userId){
+      await db.collection('users').doc(r.userId).update({contact:r.newValue,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    }
+    toast(action==='accepted'?'Request Accepted ✅':action==='3days'?'Set to 3-Day Hold ⏰':'Request Rejected ❌',action==='accepted'?'ok':'info');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ========================================================
+// KYC REVIEW
+// ========================================================
+function renderKycReview(){
+  const p=allKycReqs.filter(u=>!u.kyc_verified&&u.kycStatus!=='rejected').length;
+  const v=allKycReqs.filter(u=>u.kyc_verified).length;
+  const r=allKycReqs.filter(u=>u.kycStatus==='rejected').length;
+  const s=(id,v2)=>{const e=document.getElementById(id);if(e)e.textContent=v2;};
+  s('kyc-pending',p);s('kyc-verified',v);s('kyc-rejected-cnt',r);
+  const tb=document.getElementById('kycTableBody');if(!tb)return;
+  if(!allKycReqs.length){tb.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="empty-ico">🪪</div><p>No KYC submissions.</p></div></td></tr>';return;}
+  tb.innerHTML=allKycReqs.map(u=>{
+    const k=u.kyc||{};
+    const st=u.kyc_verified?'verified':u.kycStatus==='rejected'?'rejected':'pending';
+    return `<tr>
+      <td><div class="td-name">${esc(u.realName||'—')}</div><div class="td-uid">${esc(u.uid||'').slice(0,10)}</div></td>
+      <td>${esc(k.realName||'—')}</td>
+      <td class="td-uid">${esc(k.birthday||'—')}</td>
+      <td>${esc(k.phone||'—')}</td>
+      <td class="td-uid">${esc(k.idNumber||'—')}</td>
+      <td><span style="font-size:11px;background:rgba(255,255,255,.06);padding:3px 8px;border-radius:6px">${esc(k.docType||'nrc').toUpperCase()}</span></td>
+      <td>${st==='verified'?'<span style="color:var(--up)">✅ Verified</span>':st==='rejected'?'<span style="color:var(--dn)">❌ Rejected</span>':'<span style="color:var(--gold2)">⏳ Pending</span>'}</td>
+      <td><div class="action-row">
+        <button class="act-btn act-view" onclick="openKycPhotoModal('${u.uid}')">🔍 Review</button>
+        ${st==='pending'?`<button class="act-btn act-approve" onclick="setKycStatus('${u.uid}','verified')">✅</button><button class="act-btn act-reject" onclick="setKycStatus('${u.uid}','rejected')">❌</button>`:''}
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function openKycPhotoModal(uid){
+  activeKycUID=uid;
+  const u=allKycReqs.find(x=>x.uid===uid);if(!u)return;
+  const k=u.kyc||{};
+  document.getElementById('kycPhotoModalSub').textContent='UID: '+uid;
+  document.getElementById('kmpName').textContent=k.realName||'—';
+  document.getElementById('kmpBOD').textContent=k.birthday||'—';
+  document.getElementById('kmpPhone').textContent=k.phone||'—';
+  document.getElementById('kmpIdNum').textContent=k.idNumber||'—';
+  document.getElementById('kmpDocType').textContent=(k.docType||'nrc').toUpperCase();
+  // Try to load photos from kycPhotos collection
+  try{
+    const photoSnap=await db.collection('kycPhotos').doc(uid).get();
+    if(photoSnap.exists){
+      const pd=photoSnap.data();
+      if(pd.photoFront){
+        const pf=document.getElementById('kmpPhotoFront');pf.src=pd.photoFront;pf.style.display='block';
+        document.getElementById('kmpFrontEmpty').style.display='none';
+      }
+      if(pd.photoBack){
+        const pb=document.getElementById('kmpPhotoBack');pb.src=pd.photoBack;pb.style.display='block';
+        document.getElementById('kmpBackEmpty').style.display='none';
+      }
+    }
+  }catch(e){console.warn('KYC photos:',e);}
+  const st=u.kyc_verified?'verified':u.kycStatus==='rejected'?'rejected':'pending';
+  document.getElementById('kycPhotoActions').innerHTML=st!=='pending'?`<button class="btn-cancel" onclick="closeModal('kycPhotoModal')" style="flex:none;padding:11px 24px">Close</button>`:`<button class="btn-cancel" onclick="closeModal('kycPhotoModal')">Close</button><button class="btn-confirm-red" onclick="processKyc('rejected')">❌ Reject KYC</button><button class="btn-confirm-green" onclick="processKyc('verified')">✅ Approve KYC</button>`;
+  document.getElementById('kycPhotoModal').style.display='flex';
+}
+
+async function processKyc(status){
+  if(!activeKycUID)return;
+  try{
+    await db.collection('users').doc(activeKycUID).update({kyc_verified:status==='verified',kycStatus:status,kycReviewedAt:firebase.firestore.FieldValue.serverTimestamp(),kycReviewedBy:auth.currentUser?.email});
+    closeModal('kycPhotoModal');
+    toast(status==='verified'?'KYC Approved ✅':'KYC Rejected ❌',status==='verified'?'ok':'info');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function setKycStatus(uid,status){activeKycUID=uid;await processKyc(status);}
+
+// ========================================================
+// ACTIVE TRADES — WIN/LOSS CONTROL
+// ========================================================
+function renderActiveTrades(){
+  const p=allActiveTrades.length;
+  const all_settled_snap = []; // We only track pending here
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  s('at-pending',p); s('at-wins','—'); s('at-losses','—');
+  const tb=document.getElementById('atTableBody');if(!tb)return;
+  if(!allActiveTrades.length){tb.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="empty-ico">⚡</div><p>No active trades right now.</p></div></td></tr>';return;}
+  tb.innerHTML=allActiveTrades.map(t=>{
+    const age=Date.now()-(t.timestamp||0);
+    const ageStr=age<60000?Math.round(age/1000)+'s ago':Math.round(age/60000)+'m ago';
+    const modeLabel=globalPreset==='win'
+      ? '<span style="color:var(--up);font-weight:700">🏆 Global WIN</span>'
+      : globalPreset==='lose'
+      ? '<span style="color:var(--dn);font-weight:700">💔 Global LOSE</span>'
+      : '<span style="color:var(--orange);font-weight:700">⏳ Waiting preset</span>';
+    return `<tr>
+      <td><div class="td-name">${esc(t.userName||t.userId?.slice(0,8)||'—')}</div><div class="td-uid">${esc(t.userId||'').slice(0,10)}</div></td>
+      <td><span style="padding:4px 10px;border-radius:7px;font-size:12px;font-weight:700;background:rgba(${t.dir==='BUY'?'39,201,110':'255,61,85'},.15);color:${t.dir==='BUY'?'var(--up)':'var(--dn)'}">${t.dir||'—'}</span></td>
+      <td class="td-mono" style="color:var(--gold2)">${esc(t.symbol||'—')}</td>
+      <td class="td-mono td-gold">$${Number(t.amount||0).toLocaleString()}</td>
+      <td class="td-uid">${t.durationSec||'—'}s</td>
+      <td style="color:var(--up);font-weight:700">+${t.profitPct||0}%</td>
+      <td><span style="color:var(--orange);font-weight:600">⏳ Pending</span></td>
+      <td class="td-uid">${ageStr}</td>
+      <td>${modeLabel}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Global preset (set before trades happen)
+let globalPreset = null; // null | 'win' | 'lose'
+let globalPresetUnsub = null;
+
+async function setGlobalPreset(outcome){
+  globalPreset = outcome;
+  // Update visual
+  const wBtn=document.getElementById('presetWinBtn'),lBtn=document.getElementById('presetLoseBtn'),lbl=document.getElementById('presetStatusLabel');
+  if(wBtn)wBtn.style.boxShadow=outcome==='win'?'0 0 20px rgba(46,204,113,.5)':'';
+  if(lBtn)lBtn.style.boxShadow=outcome==='lose'?'0 0 20px rgba(255,71,87,.5)':'';
+  if(lbl){lbl.textContent=outcome?outcome.toUpperCase():'Not Set';lbl.style.color=outcome==='win'?'var(--up)':outcome==='lose'?'var(--dn)':'var(--orange)';}
+  // Store in Firebase so it persists
+  try{
+    await db.collection('adminSettings').doc('tradePreset').set({
+      outcome:outcome||null,
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy:auth.currentUser?.email||'admin'
+    });
+    if(outcome){
+      toast('Global preset set to '+outcome.toUpperCase()+' — all new trades will auto-resolve','ok');
+      // Auto-resolve any pending trades immediately
+      const snap = await db.collection('activeTrades').where('status','==','pending').get();
+      const batch = db.batch();
+      snap.docs.forEach(doc => batch.update(doc.ref,{status:outcome,resolvedAt:firebase.firestore.FieldValue.serverTimestamp(),resolvedBy:'global-preset',settled:false}));
+      if(!snap.empty) await batch.commit();
+    } else {
+      toast('Global preset cleared','info');
+    }
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function setTradeResult(){toast('Individual trade result control has been disabled. Use the dashboard global preset only.','info');}
+
+// ========================================================
+// CS CHAT
+// ========================================================
+let allChatUsers=[],activeChatUserId=null,chatMsgUnsub=null;
+function startChatListenerAdmin(){
+  db.collection('chats').orderBy('lastMsgAt','desc').onSnapshot(snap=>{
+    allChatUsers=snap.docs.map(d=>({userId:d.id,...d.data()}));
+    renderChatUserList();
+    const unread=allChatUsers.reduce((s,c)=>s+(c.unreadAdmin||0),0);
+    const b=document.getElementById('nbChat');if(b)b.textContent=unread>0?unread:'';
+  },e=>console.warn(e));
+}
+function renderChatUserList(){
+  const container=document.getElementById('chatUserList');if(!container)return;
+  if(!allChatUsers.length){container.innerHTML='<div class="empty-state"><div class="empty-ico">💬</div><p>No conversations.</p></div>';return;}
+  container.innerHTML=allChatUsers.map(c=>{
+    const name=c.userName||c.userId?.slice(0,8)||'User';
+    const active=c.userId===activeChatUserId?'background:rgba(212,175,55,.1);border-color:rgba(212,175,55,.3);':'';
+    return `<div onclick="openChatThread('${c.userId}')" style="padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;${active}"><div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#000;flex-shrink:0">${name.charAt(0).toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">${esc(name)}</div><div style="font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.lastMsg||'—')}</div></div>${(c.unreadAdmin||0)>0?`<span style="background:#ff4757;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px">${c.unreadAdmin}</span>`:''}</div>`;
+  }).join('');
+}
+function openChatThread(userId){
+  activeChatUserId=userId;renderChatUserList();
+  const c=allChatUsers.find(x=>x.userId===userId);
+  document.getElementById('chatThreadTitle').textContent='💬 '+(c?.userName||userId.slice(0,8));
+  document.getElementById('chatThreadArea').style.display='flex';
+  document.getElementById('chatEmptyState').style.display='none';
+  const msgPane=document.getElementById('chatMsgPane');
+  msgPane.innerHTML='<div style="text-align:center;padding:20px;color:var(--sub);font-size:12px">Loading...</div>';
+  if(chatMsgUnsub){chatMsgUnsub();chatMsgUnsub=null;}
+  chatMsgUnsub=db.collection('chats').doc(userId).collection('messages').orderBy('timestamp','asc').onSnapshot(snap=>{
+    msgPane.innerHTML='';
+    snap.docs.forEach(doc=>{
+      const msg=doc.data();const isAdmin=msg.sender==='admin';
+      const div=document.createElement('div');
+      div.style.cssText=`display:flex;justify-content:${isAdmin?'flex-end':'flex-start'};margin-bottom:8px`;
+      div.innerHTML=`<div style="max-width:72%;padding:10px 14px;border-radius:${isAdmin?'14px 4px 14px 14px':'4px 14px 14px 14px'};background:${isAdmin?'rgba(212,175,55,.2)':'rgba(255,255,255,.07)'};font-size:12.5px;color:var(--text);line-height:1.5">${esc(msg.text||'')}<div style="font-size:9.5px;color:var(--sub);margin-top:4px;text-align:${isAdmin?'right':'left'}">${isAdmin?'Admin':'User'}</div></div>`;
+      msgPane.appendChild(div);
+    });
+    msgPane.scrollTop=msgPane.scrollHeight;
+  },e=>console.warn(e));
+  db.collection('chats').doc(userId).update({unreadAdmin:0}).catch(()=>{});
+}
+async function sendAdminReply(){
+  if(!activeChatUserId)return;
+  const inp=document.getElementById('adminChatInp');const txt=inp.value.trim();if(!txt)return;inp.value='';
+  try{
+    const user=allUsers.find(x=>x.uid===activeChatUserId) || {};
+    await db.collection('chats').doc(activeChatUserId).collection('messages').add({text:txt,sender:'admin',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection('chats').doc(activeChatUserId).set({
+      ...getChatMetaForUser({uid:activeChatUserId,...user}),
+      lastMsg:txt,
+      lastMsgAt:firebase.firestore.FieldValue.serverTimestamp(),
+      unreadUser:firebase.firestore.FieldValue.increment(1)
+    },{merge:true});
+  }catch(e){toast('Send error: '+e.message,'err');}
+}
+
+// ========================================================
+// ANNOUNCEMENTS
+// ========================================================
+async function loadAnnouncements(){
+  const c=document.getElementById('annList');
+  c.innerHTML='<div class="loading-row"><div class="spin"></div>Loading...</div>';
+  try{
+    const snap=await db.collection('announcements').orderBy('createdAt','desc').limit(20).get();
+    if(snap.empty){c.innerHTML='<div class="empty-state"><p>No announcements.</p></div>';return;}
+    const icons={info:'📢',alert:'⚠️',profit:'💰',maintenance:'🔧'};
+    c.innerHTML=snap.docs.map(d=>{const a=d.data();return`<div class="announce-card"><div class="ann-hdr"><div class="ann-title2">${icons[a.type]||'📢'} ${esc(a.title||'Untitled')}</div><div style="display:flex;gap:8px;align-items:center"><div class="ann-meta">${a.createdAt?fmtDate(a.createdAt):'—'}</div><button class="act-btn act-del" onclick="deleteAnn('${d.id}')">🗑️</button></div></div><div class="ann-body">${esc(a.body||'')}</div></div>`;}).join('');
+  }catch(e){c.innerHTML=`<div class="empty-state"><p>${esc(e.message)}</p></div>`;}
+}
+async function postAnnouncement(){
+  const title=document.getElementById('annTitle').value.trim(),type=document.getElementById('annType').value,body=document.getElementById('annBody').value.trim();
+  if(!title||!body){toast('Fill title and message.','err');return;}
+  try{await db.collection('announcements').add({title,type,body,createdAt:firebase.firestore.FieldValue.serverTimestamp(),author:auth.currentUser?.email});document.getElementById('annTitle').value='';document.getElementById('annBody').value='';toast('Published 📢','ok');loadAnnouncements();}catch(e){toast('Error: '+e.message,'err');}
+}
+async function deleteAnn(id){try{await db.collection('announcements').doc(id).delete();toast('Deleted','info');loadAnnouncements();}catch(e){toast('Error: '+e.message,'err');}}
+
+// ========================================================
+// SETTINGS
+// ========================================================
+async function saveSettings(){
+  const user=auth.currentUser;if(!user)return;
+  const name=document.getElementById('settName').value.trim(),oldP=document.getElementById('settOldPass').value,newP=document.getElementById('settNewPass').value;
+  try{
+    if(name){await user.updateProfile({displayName:name});document.getElementById('adminName').textContent=name;}
+    if(newP&&oldP){const cred=firebase.auth.EmailAuthProvider.credential(user.email,oldP);await user.reauthenticateWithCredential(cred);await user.updatePassword(newP);document.getElementById('settOldPass').value='';document.getElementById('settNewPass').value='';}
+    toast('Settings saved ✅','ok');
+  }catch(e){const m={'auth/wrong-password':'❌ Wrong password.','auth/weak-password':'⚠️ Weak password.'};toast(m[e.code]||'❌ '+e.message,'err');}
+}
+
+// ========================================================
+// HELPERS
+// ========================================================
+function closeModal(id){document.getElementById(id).style.display='none';}
+function statusBadge(s){const m={pending:['badge badge-pending','⏳ Pending'],active:['badge badge-active','✅ Active'],rejected:['badge badge-rejected','❌ Rejected'],suspended:['badge badge-suspended','🚫 Suspended']};const[c,l]=m[s]||['badge','—'];return`<span class="${c}"><span class="badge-dot"></span>${l}</span>`;}
+function depBadge(s){const m={pending:['badge badge-pending','⏳ Pending'],confirmed:['badge badge-confirmed','✅ Confirmed'],rejected:['badge badge-rejected','❌ Rejected'],accepted:['badge badge-confirmed','✅ Accepted'],'3days':['badge badge-pending','⏰ 3-Day Hold']};const[c,l]=m[s]||['badge','—'];return`<span class="${c}"><span class="badge-dot"></span>${l}</span>`;}
+function levelBadge(l){const m={standard:['badge lv-standard','Standard'],vip:['badge lv-vip','⭐ VIP'],premium:['badge lv-premium','💎 Premium']};const[c,lb]=m[l]||['badge lv-standard','Standard'];return`<span class="${c}">${lb}</span>`;}
+function fmtDate(ts){if(!ts)return'—';try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function confirmDelete(uid,name){document.getElementById('confirmIco').textContent='🗑️';document.getElementById('confirmTitle').textContent='Delete User?';document.getElementById('confirmBody').textContent=`"${name}" will be removed.`;document.getElementById('confirmOk').onclick=()=>deleteUser(uid);document.getElementById('confirmModal').style.display='flex';}
+async function deleteUser(uid){try{await db.collection('users').doc(uid).delete();closeModal('confirmModal');toast('Deleted','info');}catch(e){toast('Error: '+e.message,'err');}}
+
+
+// ========================================================
+// ACTIVE TRADES SUB-TABS
+// ========================================================
+function switchAtTab(){return;}
+async function renderPresetTable(){return;}
+async function setUserPreset(){toast('Per-user trade preset has been disabled. Use the dashboard global preset only.','info');}
+
+// ========================================================
+// TOAST
+// ========================================================
+function toast(msg,type='ok'){
+  const el=document.createElement('div');el.className=`toast toast-${type}`;
+  const ico={ok:'✅',err:'❌',info:'ℹ️'};el.innerHTML=`<span>${ico[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);setTimeout(()=>el.remove(),3500);
+}
+
+// ========================================================
+// CLOCK
+// ========================================================
+function startClock(){const el=document.getElementById('liveTime');function tick(){if(el)el.textContent=new Date().toLocaleTimeString('en-GB');}tick();setInterval(tick,1000);}
+</script>
+</body>
+</html>
