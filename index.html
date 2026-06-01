@@ -1621,7 +1621,19 @@ function openChatThread(userId){
       const msg=doc.data();const isAdmin=msg.sender==='admin';
       const div=document.createElement('div');
       div.style.cssText=`display:flex;justify-content:${isAdmin?'flex-end':'flex-start'};margin-bottom:8px`;
-      div.innerHTML=`<div style="max-width:72%;padding:10px 14px;border-radius:${isAdmin?'14px 4px 14px 14px':'4px 14px 14px 14px'};background:${isAdmin?'rgba(212,175,55,.2)':'rgba(255,255,255,.07)'};font-size:12.5px;color:var(--text);line-height:1.5">${esc(msg.text||'')}<div style="font-size:9.5px;color:var(--sub);margin-top:4px;text-align:${isAdmin?'right':'left'}">${isAdmin?'Admin':'User'}</div></div>`;
+      // ── Photo message detection ──
+      const photoSrc = msg.photoUrl || msg.photo || msg.imageUrl || msg.image || null;
+      const isPhoto = msg.type==='photo' || msg.kind==='photo' || !!photoSrc;
+      let msgContent;
+      if(isPhoto && photoSrc){
+        msgContent=`<img src="${photoSrc}" style="max-width:100%;max-height:220px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')" onerror="this.outerHTML='<span style=color:#ff4757;font-size:12px>⚠️ ပုံ load မရပါ</span>'">`;
+      } else if(isPhoto && !photoSrc){
+        msgContent=`<span style="color:var(--sub);font-size:12px">📷 ပုံ (load မရပါ)</span>`;
+      } else {
+        msgContent=esc(msg.text||'');
+      }
+      const pad=isPhoto?'6px':'10px 14px';
+      div.innerHTML=`<div style="max-width:72%;padding:${pad};border-radius:${isAdmin?'14px 4px 14px 14px':'4px 14px 14px 14px'};background:${isAdmin?'rgba(212,175,55,.2)':'rgba(255,255,255,.07)'};font-size:12.5px;color:var(--text);line-height:1.5">${msgContent}<div style="font-size:9.5px;color:var(--sub);margin-top:4px;text-align:${isAdmin?'right':'left'}">${isAdmin?'Admin':'User'}</div></div>`;
       msgPane.appendChild(div);
     });
     msgPane.scrollTop=msgPane.scrollHeight;
